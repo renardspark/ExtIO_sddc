@@ -269,3 +269,15 @@ __pycache__/
 
 # FFTW wisdom files
 wisdom*
+
+
+##### CMake #####
+
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+CTestTestfile.cmake
+DartConfiguration.tcl
+
+# Makefiles are managed by cmake
+Makefile
