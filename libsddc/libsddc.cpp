@@ -61,7 +61,7 @@ int sddc_free_device_info(struct sddc_device_info *sddc_device_infos)
     return 0;
 }
 
-sddc_t *sddc_open(int index, const char* imagefile)
+sddc_t *sddc_open(int index)
 {
     auto ret_val = new sddc_t();
 
@@ -70,23 +70,6 @@ sddc_t *sddc_open(int index, const char* imagefile)
     {
         return nullptr;
     }
-
-    // open the firmware
-    unsigned char* res_data;
-    uint32_t res_size;
-
-    FILE *fp = fopen(imagefile, "rb");
-    if (fp == nullptr)
-    {
-        return nullptr;
-    }
-
-    fseek(fp, 0, SEEK_END);
-    res_size = ftell(fp);
-    res_data = (unsigned char*)malloc(res_size);
-    fseek(fp, 0, SEEK_SET);
-    if (fread(res_data, 1, res_size, fp) != res_size)
-        return nullptr;
 
     bool openOK = fx3->Open();
     if (!openOK)

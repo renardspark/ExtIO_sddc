@@ -113,10 +113,9 @@ static double clk_diff() {
 int main(int argc, char **argv)
 {
   if (argc < 3) {
-    fprintf(stderr, "usage: %s <image file> <sample rate> [<runtime_in_ms> [<output_filename>]\n", argv[0]);
+    fprintf(stderr, "usage: %s <sample rate> [<runtime_in_ms> [<output_filename>]\n", argv[0]);
     return -1;
   }
-  char *imagefile = argv[1];
   const char *outfilename = 0;
   double sample_rate = 0.0;
   sscanf(argv[2], "%lf", &sample_rate);
@@ -132,7 +131,7 @@ int main(int argc, char **argv)
 
   int ret_val = -1;
 
-  sddc_t *sddc = sddc_open(0, imagefile);
+  sddc_t *sddc = sddc_open(0);
   if (sddc == 0) {
     fprintf(stderr, "ERROR - sddc_open() failed\n");
     return -1;
