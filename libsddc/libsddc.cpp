@@ -156,6 +156,7 @@ int sddc_set_rf_mode(sddc_t *t, enum RFMode rf_mode)
         break;
     case HF_MODE:
         t->handler->UpdatemodeRF(HFMODE);
+        break;
     default:
         return -1;
     }
