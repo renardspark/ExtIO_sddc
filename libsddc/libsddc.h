@@ -32,38 +32,38 @@ extern "C" {
 typedef struct sddc sddc_t;
 
 struct sddc_device_info {
-  const char *manufacturer;
-  const char *product;
-  const char *serial_number;
+	const char *manufacturer;
+	const char *product;
+	const char *serial_number;
 };
 
 enum SDDCStatus {
-  SDDC_STATUS_OFF,
-  SDDC_STATUS_READY,
-  SDDC_STATUS_STREAMING,
-  SDDC_STATUS_FAILED = 0xff
+	SDDC_STATUS_OFF,
+	SDDC_STATUS_READY,
+	SDDC_STATUS_STREAMING,
+	SDDC_STATUS_FAILED = 0xff
 };
 
 enum SDDCHWModel {
-  HW_NORADIO,
-  HW_BBRF103,
-  HW_HF103,
-  HW_RX888,
-  HW_RX888R2,
-  HW_RX999,
-  HW_RX888R3,
+	HW_NORADIO,
+	HW_BBRF103,
+	HW_HF103,
+	HW_RX888,
+	HW_RX888R2,
+	HW_RX999,
+	HW_RX888R3,
 };
 
 enum RFMode {
-  NO_RF_MODE,
-  HF_MODE,
-  VHF_MODE
+	NO_RF_MODE,
+	HF_MODE,
+	VHF_MODE
 };
 
 enum LEDColors {
-  YELLOW_LED = 0x01,
-  RED_LED    = 0x02,
-  BLUE_LED   = 0x04
+	YELLOW_LED = 0x01,
+	RED_LED    = 0x02,
+	BLUE_LED   = 0x04
 };
 
 /* basic functions */
@@ -144,15 +144,15 @@ int sddc_set_vhf_bias(sddc_t *t, int bias);
 
 /* streaming functions */
 typedef void (*sddc_read_async_cb_t)(uint32_t data_size, uint8_t *data,
-                                      void *context);
+										void *context);
 
 double sddc_get_sample_rate(sddc_t *t);
 
 int sddc_set_sample_rate(sddc_t *t, double sample_rate);
 
 int sddc_set_async_params(sddc_t *t, uint32_t frame_size, 
-                          uint32_t num_frames, sddc_read_async_cb_t callback,
-                          void *callback_context);
+							uint32_t num_frames, sddc_read_async_cb_t callback,
+							void *callback_context);
 
 int sddc_start_streaming(sddc_t *t);
 
