@@ -1,0 +1,9 @@
+<map id="ringbufferbase" name="ringbufferbase">
+<area shape="rect" id="Node000001" title=" " alt="" coords="174,5,276,31"/>
+<area shape="rect" id="Node000002" href="$classringbuffer.html" title=" " alt="" coords="5,79,141,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="187,40,100,81,98,76,184,36"/>
+<area shape="rect" id="Node000003" href="$classringbuffer.html" title=" " alt="" coords="165,79,285,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="228,46,228,79,222,79,222,46"/>
+<area shape="rect" id="Node000004" href="$classringbuffer.html" title=" " alt="" coords="309,79,413,105"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="263,36,339,76,337,81,260,41"/>
+</map>

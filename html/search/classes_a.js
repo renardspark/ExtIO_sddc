@@ -1,0 +1,19 @@
+var searchData=
+[
+  ['sddc_0',['sddc',['../structsddc.html',1,'']]],
+  ['sddc_5fdevice_5finfo_1',['sddc_device_info',['../structsddc__device__info.html',1,'']]],
+  ['shift_5faddfast_5fdata_5fs_2',['shift_addfast_data_s',['../structshift__addfast__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fa_5fsse_5fdata_5fs_3',['shift_limited_unroll_A_sse_data_s',['../structshift__limited__unroll__A__sse__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fb_5fsse_5fdata_5fs_4',['shift_limited_unroll_B_sse_data_s',['../structshift__limited__unroll__B__sse__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fc_5fsse_5fdata_5fs_5',['shift_limited_unroll_C_sse_data_s',['../structshift__limited__unroll__C__sse__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fdata_5fs_6',['shift_limited_unroll_data_s',['../structshift__limited__unroll__data__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fconf_5fs_7',['shift_recursive_osc_conf_s',['../structshift__recursive__osc__conf__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fs_8',['shift_recursive_osc_s',['../structshift__recursive__osc__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fsse_5fconf_5fs_9',['shift_recursive_osc_sse_conf_s',['../structshift__recursive__osc__sse__conf__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fsse_5fs_10',['shift_recursive_osc_sse_s',['../structshift__recursive__osc__sse__s.html',1,'']]],
+  ['shift_5ftable_5fdata_5fs_11',['shift_table_data_s',['../structshift__table__data__s.html',1,'']]],
+  ['shift_5funroll_5fdata_5fs_12',['shift_unroll_data_s',['../structshift__unroll__data__s.html',1,'']]],
+  ['soapysddc_13',['SoapySDDC',['../classSoapySDDC.html',1,'']]],
+  ['splashwindow_14',['SplashWindow',['../classSplashWindow.html',1,'']]],
+  ['streaming_15',['streaming',['../structstreaming.html',1,'']]]
+];

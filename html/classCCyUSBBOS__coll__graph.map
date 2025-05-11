@@ -1,0 +1,9 @@
+<map id="CCyUSBBOS" name="CCyUSBBOS">
+<area shape="rect" id="Node000001" title=" " alt="" coords="199,94,300,120"/>
+<area shape="rect" id="Node000002" href="$classCCyBosContainerID.html" title=" " alt="" coords="5,5,142,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="106,37,160,68,216,91,214,96,158,72,104,42"/>
+<area shape="rect" id="Node000003" href="$classCCyBosUSB20Extesnion.html" title=" " alt="" coords="166,5,333,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="252,47,252,94,247,94,247,47"/>
+<area shape="rect" id="Node000004" href="$classCCyBosSuperSpeedCapability.html" title=" " alt="" coords="357,5,552,31"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="427,42,373,72,302,96,300,91,371,68,425,37"/>
+</map>

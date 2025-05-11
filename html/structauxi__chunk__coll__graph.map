@@ -1,0 +1,7 @@
+<map id="auxi_chunk" name="auxi_chunk">
+<area shape="rect" id="Node000001" title=" " alt="" coords="67,109,153,135"/>
+<area shape="rect" id="Node000002" href="$structchunk__hdr.html" title=" " alt="" coords="5,5,87,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="64,43,105,107,100,110,59,46"/>
+<area shape="rect" id="Node000003" href="$structWind__SystemTime.html" title=" " alt="" coords="110,5,240,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="162,46,120,110,116,107,157,43"/>
+</map>

@@ -1,0 +1,7 @@
+<map id="CCyUSBConfig" name="CCyUSBConfig">
+<area shape="rect" id="Node000001" title=" " alt="" coords="13,183,123,208"/>
+<area shape="rect" id="Node000002" href="$classCCyUSBInterface.html" title=" " alt="" coords="6,94,130,120"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="71,135,71,182,65,182,65,135"/>
+<area shape="rect" id="Node000003" href="$classCCyUSBEndPoint.html" title=" " alt="" coords="5,5,131,31"/>
+<area shape="poly" id="edge2_Node000002_Node000003" title=" " alt="" coords="71,47,71,94,65,94,65,47"/>
+</map>

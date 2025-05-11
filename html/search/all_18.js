@@ -1,0 +1,28 @@
+var searchData=
+[
+  ['schematic_20diagram_20of_20rx888_20by_20justin_20peng_20howard_20su_0',['schematic diagram of RX888 by Justin Peng, Howard Su',['../md_hardware_2RX888_2README.html',1,'']]],
+  ['sddc_1',['sddc',['../structsddc.html',1,'']]],
+  ['sddc_200_2095_20date_2031_2008_202017_2',['tag  v0.95  Version &quot;SDDC-0.95&quot; date 31/08/2017',['../md_README.html#autotoc_md19',1,'']]],
+  ['sddc_200_2096_20date_2025_2002_202018_3',['tag  v0.96  Version &quot;SDDC-0.96&quot; date  25/02/2018',['../md_README.html#autotoc_md18',1,'']]],
+  ['sddc_200_2098_20date_2013_2006_202019_4',['tag  v0.98  Version &quot;SDDC-0.98&quot; date  13/06/2019',['../md_README.html#autotoc_md17',1,'']]],
+  ['sddc_5fdevice_5finfo_5',['sddc_device_info',['../structsddc__device__info.html',1,'']]],
+  ['shift_5faddfast_5fdata_5fs_6',['shift_addfast_data_s',['../structshift__addfast__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fa_5fsse_5fdata_5fs_7',['shift_limited_unroll_A_sse_data_s',['../structshift__limited__unroll__A__sse__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fb_5fsse_5fdata_5fs_8',['shift_limited_unroll_B_sse_data_s',['../structshift__limited__unroll__B__sse__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fc_5fsse_5fdata_5fs_9',['shift_limited_unroll_C_sse_data_s',['../structshift__limited__unroll__C__sse__data__s.html',1,'']]],
+  ['shift_5flimited_5funroll_5fdata_5fs_10',['shift_limited_unroll_data_s',['../structshift__limited__unroll__data__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fconf_5fs_11',['shift_recursive_osc_conf_s',['../structshift__recursive__osc__conf__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fs_12',['shift_recursive_osc_s',['../structshift__recursive__osc__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fsse_5fconf_5fs_13',['shift_recursive_osc_sse_conf_s',['../structshift__recursive__osc__sse__conf__s.html',1,'']]],
+  ['shift_5frecursive_5fosc_5fsse_5fs_14',['shift_recursive_osc_sse_s',['../structshift__recursive__osc__sse__s.html',1,'']]],
+  ['shift_5ftable_5fdata_5fs_15',['shift_table_data_s',['../structshift__table__data__s.html',1,'']]],
+  ['shift_5funroll_5fdata_5fs_16',['shift_unroll_data_s',['../structshift__unroll__data__s.html',1,'']]],
+  ['soapysddc_17',['SoapySDDC',['../classSoapySDDC.html',1,'']]],
+  ['software_20digital_20down_20converter_20oscar_20steila_20ik1xpv_18',['ExtIO_sddc.dll (software digital down converter) - Oscar Steila, ik1xpv',['../md_README.html',1,'']]],
+  ['splashwindow_19',['SplashWindow',['../classSplashWindow.html',1,'']]],
+  ['steila_20ik1xpv_20',['ExtIO_sddc.dll (software digital down converter) - Oscar Steila, ik1xpv',['../md_README.html',1,'']]],
+  ['steila_20ik1xpv_20at_20gmail_20com_21',['2016,2017,2018,2019,2020,2021  IK1XPV Oscar Steila - ik1xpv(at)gmail.com',['../md_README.html#autotoc_md22',1,'']]],
+  ['streaming_22',['streaming',['../structstreaming.html',1,'']]],
+  ['structure_3a_23',['structure:',['../md_hardware_2README.html#autotoc_md1',1,'Directory structure:'],['../md_README.html#autotoc_md8',1,'Directory structure:']]],
+  ['su_24',['schematic diagram of RX888 by Justin Peng, Howard Su',['../md_hardware_2RX888_2README.html',1,'']]]
+];

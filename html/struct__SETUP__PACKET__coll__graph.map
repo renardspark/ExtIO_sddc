@@ -1,0 +1,7 @@
+<map id="_SETUP_PACKET" name="_SETUP_PACKET">
+<area shape="rect" id="Node000001" title=" " alt="" coords="72,124,203,150"/>
+<area shape="rect" id="Node000002" href="$struct__BM__REQ__TYPE.html" title=" " alt="" coords="5,5,129,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="81,44,111,99,129,122,125,125,106,101,76,46"/>
+<area shape="rect" id="Node000003" href="$struct__WORD__SPLIT.html" title=" " alt="" coords="153,5,266,31"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="206,47,197,74,182,102,158,125,154,122,178,98,192,72,201,45"/>
+</map>

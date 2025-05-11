@@ -1,0 +1,9 @@
+<map id="_USB_DEFAULT_PIPE_SETUP_PACKET" name="_USB_DEFAULT_PIPE_SETUP_PACKET">
+<area shape="rect" id="Node000001" title=" " alt="" coords="362,55,573,96"/>
+<area shape="rect" id="Node000002" href="$union__BM__REQUEST__TYPE.html" title=" " alt="" coords="32,5,190,31"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="206,31,362,56,361,61,206,36"/>
+<area shape="rect" id="Node000003" href="$union__USB__DEFAULT__PIPE__SETUP__PACKET_1_1__wValue.html" title=" " alt="" coords="5,55,217,96"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="232,73,362,73,362,78,232,78"/>
+<area shape="rect" id="Node000004" href="$union__USB__DEFAULT__PIPE__SETUP__PACKET_1_1__wIndex.html" title=" " alt="" coords="5,120,217,161"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="231,116,361,92,362,97,232,121"/>
+</map>

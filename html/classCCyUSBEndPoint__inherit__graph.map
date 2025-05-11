@@ -1,0 +1,11 @@
+<map id="CCyUSBEndPoint" name="CCyUSBEndPoint">
+<area shape="rect" id="Node000001" title=" " alt="" coords="242,5,367,31"/>
+<area shape="rect" id="Node000002" href="$classCCyBulkEndPoint.html" title=" " alt="" coords="5,79,129,105"/>
+<area shape="poly" id="edge1_Node000001_Node000002" title=" " alt="" coords="250,38,108,81,107,76,249,33"/>
+<area shape="rect" id="Node000003" href="$classCCyControlEndPoint.html" title=" " alt="" coords="152,79,291,105"/>
+<area shape="poly" id="edge2_Node000001_Node000003" title=" " alt="" coords="280,44,237,81,234,77,277,39"/>
+<area shape="rect" id="Node000004" href="$classCCyInterruptEndPoint.html" title=" " alt="" coords="314,79,460,105"/>
+<area shape="poly" id="edge3_Node000001_Node000004" title=" " alt="" coords="332,39,375,77,371,81,328,44"/>
+<area shape="rect" id="Node000005" href="$classCCyIsocEndPoint.html" title=" " alt="" coords="483,79,606,105"/>
+<area shape="poly" id="edge4_Node000001_Node000005" title=" " alt="" coords="360,33,504,76,503,81,358,38"/>
+</map>
