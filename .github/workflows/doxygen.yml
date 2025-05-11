@@ -1,0 +1,29 @@
+name: Doxygen Action
+
+uses: mattnotmitt/doxygen-action@1.12.0
+
+
+name: Generate and deploy Doxygen
+
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+      - name: Generate Doxygen files
+        uses: mattnotmitt/doxygen-action@1.12.0
+
+      - name: Deploy on Github Pages
+        uses: peaceiris/actions-gh-pages@v4
+        if: github.ref == 'refs/heads/master'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs
