@@ -26,7 +26,11 @@ public:
     void setSideband(bool lsb) { this->sideband = lsb; }
     bool getSideband() const { return this->sideband; }
 
-    void setDecimate(int dec) {this->mdecimation = dec; }
+    bool setDecimate(uint8_t dec) {
+        if(dec >= NDECIDX) return false;
+        this->mdecimation = dec;
+        return true;
+    }
 
     virtual void Init(float gain, ringbuffer<int16_t>* input, ringbuffer<float>* obuffers) {}
     virtual void TurnOn() { this->r2iqOn = true; }

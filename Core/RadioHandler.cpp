@@ -1,10 +1,31 @@
-#include "license.txt" 
+/*
+ * This file is part of SDDC_Driver.
+ *
+ * Copyright (C) 2020 - Oscar Steila
+ * Copyright (C) 2020 - Howard Su
+ * Copyright (C) 2021 - Hayati Ayguen
+ * Copyright (C) 2025 - RenardSpark
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#include "RadioHandler.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
 #include "pffft/pf_mixer.h"
-#include "RadioHandler.h"
 #include "config.h"
 #include "fft_mt_r2iq.h"
 #include "config.h"
@@ -13,187 +34,243 @@
 
 #include <chrono>
 
-using namespace std::chrono;
+using namespace std;
 
 // transfer variables
 
 unsigned long Failures = 0;
 
-void RadioHandlerClass::OnDataPacket()
+void RadioHandler::OnDataPacket()
 {
-	auto len = outputbuffer.getBlockSize() / 2 / sizeof(float);
+	auto len_real = real_buffer.getBlockSize() / sizeof(int16_t);
+	auto len_iq   = iq_buffer.getBlockSize() / sizeof(float);
 
-	while(run)
+	//ringbuffer<>* source_buffer = r2iqEnabled ? &outputbuffer : &inputbuffer;
+
+	while(streamRunning)
 	{
-		auto buf = outputbuffer.getReadPtr();
-
-		if (!run)
-			break;
-
-		if (fc != 0.0f)
+		if(r2iqEnabled)
 		{
-			std::unique_lock<std::mutex> lk(fc_mutex);
-			shift_limited_unroll_C_sse_inp_c((complexf*)buf, len, stateFineTune);
-		}
+			auto buf = iq_buffer.getReadPtr();
 
-#ifdef _DEBUG		//PScope buffer screenshot
-		if (saveADCsamplesflag == true)
+			if (!streamRunning)
+				break;
+
+			if (fc != 0.0f)
+			{
+				std::unique_lock<std::mutex> lk(fc_mutex);
+				shift_limited_unroll_C_sse_inp_c((complexf*)buf, len_iq, stateFineTune);
+			}
+
+			callbackIQ(callbackIQContext, buf, len_iq);
+
+			iq_buffer.ReadDone();
+			count_iq_samples += len_iq;
+		}
+		else
 		{
-			saveADCsamplesflag = false; // do it once
-			unsigned int numsamples = transferSize / sizeof(int16_t);
-			float samplerate  = (float) getSampleRate();
-			PScopeShot("ADCrealsamples.adc", "ExtIO_sddc.dll",
-				"ADCrealsamples.adc input real ADC 16 bit samples",
-				(short*)buf, samplerate, numsamples);
+			auto buf = real_buffer.getReadPtr();
+
+			if (!streamRunning)
+				break;
+
+			callbackReal(callbackRealContext, buf, len_real);
+
+			real_buffer.ReadDone();
+			count_real_samples += len_real;
 		}
-#endif
-
-		Callback(callbackContext, buf, len);
-
-		outputbuffer.ReadDone();
-
-		SamplesXIF += len;
 	}
 }
 
-RadioHandlerClass::RadioHandlerClass() :
+/**
+ * @brief Create a new Radio Handler
+ * 
+ * @param[in] dev_index The index of the SDR to use. You can get the list of
+ *   available devices by using the static function of RadioHandler
+ */
+RadioHandler::RadioHandler():
 	DbgPrintFX3(nullptr),
 	GetConsoleIn(nullptr),
-	run(false),
-	pga(false),
-	dither(false),
-	randout(false),
-	biasT_HF(false),
-	biasT_VHF(false),
-	firmware(0),
-	modeRF(NOMODE),
-	adcrate(DEFAULT_ADC_FREQ),
-	fc(0.0f),
-	hardware(new DummyRadio(nullptr))
+	hardware(new DummyRadio(nullptr)),
+	fc(0.0f)
+	
 {
+	TracePrintf("RadioHandler::RadioHandler()\n");
+
+	fx3 = CreateUsbHandler();
 	stateFineTune = new shift_limited_unroll_C_sse_data_t();
 }
 
-RadioHandlerClass::~RadioHandlerClass()
+sddc_err_t RadioHandler::Init(uint8_t dev_index)
 {
-	delete stateFineTune;
-}
+	TracePrintf("RadioHandler::Init(%d)\n", dev_index);
 
-const char *RadioHandlerClass::getName() const
-{
-	return hardware->getName();
-}
+	if(!fx3->Open(dev_index))
+	{
+		DebugPrintf("RadioHandler::RadioHandler - FX3 open failed\n");
+		return ERR_FX3_OPEN_FAILED;
+	}
 
-bool RadioHandlerClass::Init(fx3class* Fx3, void (*callback)(void*context, const float*, uint32_t), r2iqControlClass *r2iqCntrl, void *context)
-{
 	uint8_t rdata[4];
-	this->fx3 = Fx3;
-	this->Callback = callback;
-	this->callbackContext = context;
+	fx3->GetHardwareInfo((uint32_t*)rdata);
 
-	if (r2iqCntrl == nullptr)
-		r2iqCntrl = new fft_mt_r2iq();
-
-	Fx3->GetHardwareInfo((uint32_t*)rdata);
-
-	radio = (RadioModel)rdata[0];
-	firmware = (rdata[1] << 8) + rdata[2];
+	devModel = (RadioModel)rdata[0];
+	devFirmware = (rdata[1] << 8) + rdata[2];
 
 	delete hardware; // delete dummy instance
-	switch (radio)
+	switch (devModel)
 	{
 	case HF103:
-		hardware = new HF103Radio(Fx3);
+		hardware = new HF103Radio(fx3);
 		break;
 
 	case BBRF103:
-		hardware = new BBRF103Radio(Fx3);
+		hardware = new BBRF103Radio(fx3);
 		break;
 
 	case RX888:
-		hardware = new RX888Radio(Fx3);
+		hardware = new RX888Radio(fx3);
 		break;
 
 	case RX888r2:
-		hardware = new RX888R2Radio(Fx3);
+		hardware = new RX888R2Radio(fx3);
 		break;
 
 	case RX888r3:
-		hardware = new RX888R3Radio(Fx3);
+		hardware = new RX888R3Radio(fx3);
 		break;
 
 	case RX999:
-		hardware = new RX999Radio(Fx3);
+		hardware = new RX999Radio(fx3);
 		break;
 
 	case RXLUCY:
-		hardware = new RXLucyRadio(Fx3);
+		hardware = new RXLucyRadio(fx3);
 		break;
 
 	default:
-		hardware = new DummyRadio(Fx3);
+		hardware = new DummyRadio(fx3);
 		DbgPrintf("WARNING no SDR connected\n");
 		break;
 	}
-	adcrate = adcnominalfreq;
-	hardware->Initialize(adcnominalfreq);
-	DbgPrintf("%s | firmware %x\n", hardware->getName(), firmware);
-	this->r2iqCntrl = r2iqCntrl;
-	r2iqCntrl->Init(hardware->getGain(), &inputbuffer, &outputbuffer);
 
-	return true;
+	sddc_err_t ret = hardware->SetRFMode(HFMODE);
+	if(ret != ERR_SUCCESS) return ret;
+
+	ret = hardware->SetADCSampleRate(DEFAULT_ADC_FREQ);
+	if(ret != ERR_SUCCESS) return ret;
+
+	DebugPrintf("RadioHandler - Detected radio : %s, firmware %x\n", hardware->GetName(), devFirmware);
+
+	this->r2iqCntrl = new fft_mt_r2iq();
+	r2iqCntrl->Init(hardware->getGain(), &real_buffer, &iq_buffer);
+
+	return ERR_SUCCESS;
 }
 
-bool RadioHandlerClass::Start(int srate_idx)
+RadioHandler::~RadioHandler()
 {
-	Stop();
-	DbgPrintf("RadioHandlerClass::Start\n");
+	delete stateFineTune;
+	delete hardware;
+	delete fx3;
+}
 
-	int	decimate = 4 - srate_idx;   // 5 IF bands
-	if (adcnominalfreq > N2_BANDSWITCH) 
-		decimate = 5 - srate_idx;   // 6 IF bands
-	if (decimate < 0)
-	{
-		decimate = 0;
-		DbgPrintf("WARNING decimate mismatch at srate_idx = %d\n", srate_idx);
-	}
-	run = true;
+sddc_err_t RadioHandler::AttachReal(void (*callback)(void*context, const int16_t*, uint32_t), void *context)
+{
+	this->callbackReal = callback;
+	this->callbackRealContext = context;
+
+	return ERR_SUCCESS;
+}
+
+sddc_err_t RadioHandler::AttachIQ(void (*callback)(void*context, const float*, uint32_t), void *context)
+{
+	this->callbackIQ = callback;
+	this->callbackIQContext = context;
+
+	return ERR_SUCCESS;
+}
+
+/**
+ * @brief Create a new Radio Handler
+ * 
+ * \note This function has no effect if `convert_r2iq` is set to `false` when calling `RadioHandler::Start`
+ * 
+ * @param[in] decimate A power of 2 of the decimation to apply to the input signal
+ * 
+ * \code
+ *  radio_handler.SetDecimation(0) // No decimation
+ *  radio_handler.SetDecimation(1) // Decimate by 2
+ *  radio_handler.SetDecimation(4) // Decimate by 16
+ * \endcode
+ * 
+ * \retval ERR_SUCCESS
+ * \retval ERR_DECIMATION_OUT_OF_RANGE
+ */
+sddc_err_t RadioHandler::SetDecimation(uint8_t decimate)
+{
+	if(r2iqCntrl->setDecimate(decimate) != true)
+		return ERR_DECIMATION_OUT_OF_RANGE;
+
+	return ERR_SUCCESS;
+}
+
+
+/**
+ * @brief Start the SDR and processing functions
+ * 
+ * @param[in] convert_r2iq Set to `true` to output IQ data instead of real samples
+ * 
+ * \retval ERR_SUCCESS
+ * \retval ERR_DECIMATION_OUT_OF_RANGE
+ */
+sddc_err_t RadioHandler::Start(bool convert_r2iq)
+{
+
+	TracePrintf("RadioHandler::Start(%s)\n", convert_r2iq ? "true" : "false");
+
+	// Stop the stream  if it was already running
+	sddc_err_t ret = Stop();
+	if(ret != ERR_SUCCESS) return ret;
+
+	streamRunning = true;
 	count = 0;
 
-	hardware->FX3producerOn();  // FX3 start the producer
+	// SDR starts sending frames
+	ret = hardware->StartStream();
+	if(ret != ERR_SUCCESS) return ret;
 
-	outputbuffer.setBlockSize(EXT_BLOCKLEN * 2 * sizeof(float));
+	iq_buffer.setBlockSize(EXT_BLOCKLEN * sizeof(float));
 
-	// 0,1,2,3,4 => 32,16,8,4,2 MHz
-	r2iqCntrl->setDecimate(decimate);
-	r2iqCntrl->TurnOn();
-	fx3->StartStream(inputbuffer, QUEUE_SIZE);
+	r2iqEnabled = convert_r2iq;
+	if(r2iqEnabled) r2iqCntrl->TurnOn();
 
-	submit_thread = std::thread(
-		[this]() {
-			this->OnDataPacket();
-		});
+	// Driver starts receiving frames
+	fx3->StartStream(real_buffer/*, QUEUE_SIZE*/);
+
+	submit_thread = std::thread([this]() {
+		this->OnDataPacket();
+	});
 
 	show_stats_thread = std::thread([this](void*) {
 		this->CaculateStats();
 	}, nullptr);
 
-	return true;
+	return ERR_SUCCESS;
 }
 
-bool RadioHandlerClass::Stop()
+sddc_err_t RadioHandler::Stop()
 {
-	std::unique_lock<std::mutex> lk(stop_mutex);
-	DbgPrintf("RadioHandlerClass::Stop %d\n", run);
-	if (run)
+	TracePrintf("RadioHandler::Stop()\n");
+	DebugPrintf("RadioHandler - Stream running : %s\n", streamRunning ? "true" : "false");
+
+	if(streamRunning)
 	{
-		run = false; // now waits for threads
+		streamRunning = false; // now waits for threads
 
 		r2iqCntrl->TurnOff();
 
 		fx3->StopStream();
-
-		run = false; // now waits for threads
 
 		show_stats_thread.join(); //first to be joined
 		DbgPrintf("show_stats_thread join2\n");
@@ -201,172 +278,269 @@ bool RadioHandlerClass::Stop()
 		submit_thread.join();
 		DbgPrintf("submit_thread join1\n");
 
-		hardware->FX3producerOff();     //FX3 stop the producer
+		sddc_err_t ret = hardware->StopStream(); // SDR stops sending frames
+		if(ret != ERR_SUCCESS) return ret;
 	}
-	return true;
+	return ERR_SUCCESS;
 }
 
-
-bool RadioHandlerClass::Close()
+sddc_err_t RadioHandler::SetRFMode(sddc_rf_mode_t mode)
 {
-	delete hardware;
-	hardware = nullptr;
-
-	return true;
-}
-
-bool RadioHandlerClass::UpdateSampleRate(uint32_t samplefreq)
-{
-	hardware->Initialize(samplefreq);
-
-	this->adcrate = samplefreq;
-
-	return 0;
-}
-
-// attenuator RF used in HF
-int RadioHandlerClass::UpdateattRF(int att)
-{
-	if (hardware->UpdateattRF(att))
+	TracePrintf("RadioHandler::SetRFMode(%d)\n", mode);
+	if(hardware->GetRFMode() != mode)
 	{
-		return att;
+		DebugPrintf("Switching to RF mode %d\n", mode);
+
+		sddc_err_t ret = hardware->SetRFMode(mode);
+		if(ret != ERR_SUCCESS) return ret;
 	}
-	return 0;
+	return ERR_SUCCESS;
 }
 
-// attenuator RF used in HF
-int RadioHandlerClass::UpdateIFGain(int idx)
+vector<float> RadioHandler::GetAttenuationSteps()
 {
-	if (hardware->UpdateGainIF(idx))
+	TracePrintf("RadioHandler::GetAttenuationSteps()\n");
+	switch(hardware->GetRFMode())
 	{
-		return idx;
+		case HFMODE:
+			return hardware->GetRFSteps_HF();
+		case VHFMODE:
+			return hardware->GetRFSteps_VHF();
+		default:
+			return vector<float>();
+	}
+}
+array<float, 2> RadioHandler::GetAttenuationRange()
+{
+	TracePrintf("RadioHandler::GetAttenuationRange()\n");
+	
+	vector<float> att_steps = GetAttenuationSteps();
+	DebugPrintf("Attenuation : min=%f, max=%f\n", att_steps.front(), att_steps.back());
+	return array<float, 2>{att_steps.front(), att_steps.back()};
+}
+float RadioHandler::GetAttenuation()
+{
+	TracePrintf("RadioHandler::GetAttenuation()\n");
+
+	int step = 0;
+	switch(hardware->GetRFMode())
+	{
+		case HFMODE:
+			step = hardware->GetRF_HF();
+			break;
+		case VHFMODE:
+			step = hardware->GetRF_VHF();
+			break;
+		default:
+			return 0;
+	}
+
+	vector<float> att_steps = GetAttenuationSteps();
+
+	if(step >= 0 && step < att_steps.size())
+	{
+		DebugPrintf("Attenuation = %f, step = %d\n", att_steps[step], step);
+		return att_steps[step];
 	}
 
 	return 0;
 }
-
-int RadioHandlerClass::GetRFAttSteps(const float **steps) const
+sddc_err_t RadioHandler::SetAttenuation(float new_att)
 {
-	return hardware->getRFSteps(steps);
-}
+	vector<float> att_steps = GetAttenuationSteps();
 
-int RadioHandlerClass::GetIFGainSteps(const float **steps) const
-{
-	return hardware->getIFSteps(steps);
-}
+	if(att_steps.empty())
+		return ERR_NOT_COMPATIBLE;
 
-bool RadioHandlerClass::UpdatemodeRF(rf_mode mode)
-{
-	if (modeRF != mode){
-		modeRF = mode;
-		DbgPrintf("Switch to mode: %d\n", modeRF);
+	if(new_att <= att_steps.front())
+		new_att = att_steps.front();
 
-		hardware->UpdatemodeRF(mode);
+	if(new_att >= att_steps.back())
+		new_att = att_steps.back();
 
-		if (mode == VHFMODE)
-			r2iqCntrl->setSideband(true);
-		else
-			r2iqCntrl->setSideband(false);
+	int step = 0;
+	for (size_t i = 1; i < att_steps.size(); i++) {
+        if(att_steps[i - 1] <= new_att && att_steps[i] >= new_att)
+        {
+            float gain_middle = (att_steps[i] - att_steps[i - 1]) / 2;
+            float value_relative = (new_att - att_steps[i - 1]);
+            step = (value_relative > gain_middle) ? i : i - 1;
+            break;
+        }
+    }
+
+	switch(hardware->GetRFMode())
+	{
+		case HFMODE:
+			DebugPrintf("HF gain = %f, step = %d\n", att_steps[step], step);
+			return hardware->SetRFAttenuation_HF(step);
+		case VHFMODE:
+			DebugPrintf("VHF gain = %f, step = %d\n", att_steps[step], step);
+			return hardware->SetRFAttenuation_HF(step);
+		default:
+			return ERR_NOT_COMPATIBLE;
 	}
-	return true;
 }
 
-rf_mode RadioHandlerClass::PrepareLo(uint64_t lo)
+vector<float> RadioHandler::GetGainSteps()
 {
-	return hardware->PrepareLo(lo);
+	switch(hardware->GetRFMode())
+	{
+		case HFMODE:
+			return hardware->GetIFSteps_HF();
+		case VHFMODE:
+			return hardware->GetIFSteps_VHF();
+		default:
+			return vector<float>();
+	}
+}
+array<float, 2> RadioHandler::GetGainRange()
+{
+	TracePrintf("RadioHandler::GetGainRange()\n");
+	
+	vector<float> gain_steps = GetGainSteps();
+	DebugPrintf("Gain : min=%f, max=%f\n", gain_steps.front(), gain_steps.back());
+	return array<float, 2>{gain_steps.front(), gain_steps.back()};
+}
+float RadioHandler::GetGain()
+{
+	TracePrintf("RadioHandler::GetGain()\n");
+
+	int step = 0;
+	switch(hardware->GetRFMode())
+	{
+		case HFMODE:
+			step = hardware->GetIF_HF();
+			break;
+		case VHFMODE:
+			step = hardware->GetIF_VHF();
+			break;
+		default:
+			return 0;
+	}
+
+	vector<float> gain_steps = GetGainSteps();
+
+	if(step >= 0 && step < gain_steps.size())
+	{
+		DebugPrintf("Gain = %f, step = %d\n", gain_steps[step], step);
+		return gain_steps[step];
+	}
+
+	return 0;
+}
+sddc_err_t RadioHandler::SetGain(float new_gain)
+{
+	vector<float> gain_steps = GetGainSteps();
+
+	if(gain_steps.empty())
+		return ERR_NOT_COMPATIBLE;
+
+	if(new_gain <= gain_steps.front())
+		new_gain = gain_steps.front();
+
+	if(new_gain >= gain_steps.back())
+		new_gain = gain_steps.back();
+
+	int step = 0;
+	for (size_t i = 1; i < gain_steps.size(); i++) {
+        if(gain_steps[i - 1] <= new_gain && gain_steps[i] >= new_gain)
+        {
+            float gain_middle = (gain_steps[i] - gain_steps[i - 1]) / 2;
+            float value_relative = (new_gain - gain_steps[i - 1]);
+            step = (value_relative > gain_middle) ? i : i - 1;
+            break;
+        }
+    }
+
+	switch(hardware->GetRFMode())
+	{
+		case HFMODE:
+			DebugPrintf("HF gain = %f, step = %d\n", gain_steps[step], step);
+			return hardware->SetIFGain_HF(step);
+		case VHFMODE:
+			DebugPrintf("VHF gain = %f, step = %d\n", gain_steps[step], step);
+			return hardware->SetIFGain_VHF(step);
+		default:
+			return ERR_NOT_COMPATIBLE;
+	}
 }
 
-uint64_t RadioHandlerClass::TuneLO(uint64_t wishedFreq)
+uint32_t RadioHandler::GetCenterFrequency()
 {
-	uint64_t actLo;
+	switch(hardware->GetRFMode())
+	{
+		case HFMODE:
+			return hardware->GetLOFreq_HF();
+		case VHFMODE:
+			return hardware->GetLOFreq_VHF();
+		default:
+			return 0;
+	}
+}
+sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
+{
+	float fc = 0;
 
-	actLo = hardware->TuneLo(wishedFreq);
+	if(hardware->GetRFMode() == HFMODE)
+	{
+		sddc_err_t ret = hardware->SetLOFreq_HF(wishedFreq);
+		if(ret != ERR_SUCCESS) return ret;
 
-	// we need shift the samples
-	int64_t offset = wishedFreq - actLo;
-	DbgPrintf("Offset freq %" PRIi64 "\n", offset);
-	float fc = r2iqCntrl->setFreqOffset(offset / (getSampleRate() / 2.0f));
-	if (GetmodeRF() == VHFMODE)
-		fc = -fc;   // sign change with sideband used
+		// we need shift the samples
+		//uint32_t offset = hardware->GetTunerCarrier_HF();
+		uint32_t offset = wishedFreq;
+		DebugPrintf("Offset freq %d" PRIi64 "\n", offset);
+		fc = r2iqCntrl->setFreqOffset(offset / (GetADCSampleRate() / 2.0f));
+	}
+	else if(hardware->GetRFMode() == VHFMODE)
+	{
+		sddc_err_t ret = hardware->SetLOFreq_VHF(wishedFreq);
+		if(ret != ERR_SUCCESS) return ret;
+
+		// we need shift the samples
+		uint32_t offset = hardware->GetTunerCarrier_VHF();
+		DbgPrintf("Offset freq %d" PRIi64 "\n", offset);
+
+		// sign change with sideband used
+		fc = -r2iqCntrl->setFreqOffset(offset / (GetADCSampleRate() / 2.0f));
+	}
+	else
+	{
+		return ERR_NOT_COMPATIBLE;
+	}
+	
 	if (this->fc != fc)
 	{
 		std::unique_lock<std::mutex> lk(fc_mutex);
 		*stateFineTune = shift_limited_unroll_C_sse_init(fc, 0.0F);
 		this->fc = fc;
 	}
-
-	return wishedFreq;
+	return ERR_SUCCESS;
 }
 
-bool RadioHandlerClass::UptDither(bool b)
+
+
+void RadioHandler::CaculateStats()
 {
-	dither = b;
-	if (dither)
-		hardware->FX3SetGPIO(DITH);
-	else
-		hardware->FX3UnsetGPIO(DITH);
-	return dither;
-}
-
-bool RadioHandlerClass::UptPga(bool b)
-{
-	pga = b;
-	if (pga)
-		hardware->FX3SetGPIO(PGA_EN);
-	else
-		hardware->FX3UnsetGPIO(PGA_EN);
-	return pga;
-}
-
-bool RadioHandlerClass::UptRand(bool b)
-{
-	randout = b;
-	if (randout)
-		hardware->FX3SetGPIO(RANDO);
-	else
-		hardware->FX3UnsetGPIO(RANDO);
-	r2iqCntrl->updateRand(randout);
-	return randout;
-}
-
-void RadioHandlerClass::CaculateStats()
-{
-	high_resolution_clock::time_point EndingTime;
-	float kbRead = 0;
-	float kSReadIF = 0;
-
-	kbRead = 0; // zeros the kilobytes counter
-	kSReadIF = 0;
-
-	BytesXferred = 0;
-	SamplesXIF = 0;
+	chrono::high_resolution_clock::time_point StartingTime, EndingTime;
 
 	uint8_t  debdata[MAXLEN_D_USB];
 	memset(debdata, 0, MAXLEN_D_USB);
 
-	auto StartingTime = high_resolution_clock::now();
+	while (streamRunning)
+	{
+		// --- Reset all counters --- //
+		count_real_samples = 0;
+		count_iq_samples = 0;
 
-	while (run) {
-		kbRead = float(BytesXferred) / 1000.0f;
-		kSReadIF = float(SamplesXIF) / 1000.0f;
+		StartingTime = chrono::high_resolution_clock::now();
 
-		EndingTime = high_resolution_clock::now();
-
-		duration<float,std::ratio<1,1>> timeElapsed(EndingTime-StartingTime);
-
-		mBps = (float)kbRead / timeElapsed.count() / 1000 / sizeof(int16_t);
-		mSpsIF = (float)kSReadIF / timeElapsed.count() / 1000;
-
-		BytesXferred = 0;
-		SamplesXIF = 0;
-
-		StartingTime = high_resolution_clock::now();
-	
 #ifdef _DEBUG  
 		int nt = 10;
 		while (nt-- > 0)
 		{
-			std::this_thread::sleep_for(0.05s);
+			std::this_thread::sleep_for(0.1s);
 			debdata[0] = 0; //clean buffer 
 			if (GetConsoleIn != nullptr)
 			{
@@ -389,51 +563,76 @@ void RadioHandlerClass::CaculateStats()
 			
 		}
 #else
-		std::this_thread::sleep_for(0.5s);
+		std::this_thread::sleep_for(1s);
 #endif
+
+
+		EndingTime = chrono::high_resolution_clock::now();
+		chrono::duration<float,std::ratio<1,1>> timeElapsed(EndingTime-StartingTime);
+
+		real_samples_per_second = (float)count_real_samples / timeElapsed.count();
+		iq_samples_per_second = (float)count_iq_samples / timeElapsed.count();
+
+		DebugPrintf("RadioHandler - real=%fSps, iq=%fSps\n", real_samples_per_second, iq_samples_per_second);
 	}
 	return;
 }
 
-void RadioHandlerClass::UpdBiasT_HF(bool flag) 
+sddc_err_t RadioHandler::SetRand(bool new_state)
 {
-	biasT_HF = flag;
+	r2iqCntrl->updateRand(new_state);
+	return hardware->SetRand(new_state);
+};
 
-	if (biasT_HF)
-		hardware->FX3SetGPIO(BIAS_HF);
-	else
-		hardware->FX3UnsetGPIO(BIAS_HF);
+
+
+// ----- RadioHardware passthrough ----- //
+sddc_rf_mode_t  RadioHandler::GetBestRFMode(uint64_t freq) { return hardware->GetBestRFMode(freq); };
+sddc_rf_mode_t  RadioHandler::GetRFMode()                  { return hardware->GetRFMode(); };
+
+uint32_t	RadioHandler::GetADCSampleRate()                    { return hardware->GetADCSampleRate(); };
+sddc_err_t	RadioHandler::SetADCSampleRate(uint32_t samplefreq) { return hardware->SetADCSampleRate(samplefreq); };
+
+bool 		RadioHandler::GetBiasT_HF ()               { return hardware->GetBiasT_HF(); };
+sddc_err_t	RadioHandler::SetBiasT_HF (bool new_state) { return hardware->SetBiasT_HF(new_state); };
+bool 		RadioHandler::GetBiasT_VHF()               { return hardware->GetBiasT_VHF(); };
+sddc_err_t	RadioHandler::SetBiasT_VHF(bool new_state) { return hardware->SetBiasT_VHF(new_state); };
+
+bool 		RadioHandler::GetDither()               { return hardware->GetDither(); };
+sddc_err_t	RadioHandler::SetDither(bool new_state) { return hardware->SetDither(new_state); };
+bool 		RadioHandler::GetPGA()                  { return hardware->GetPGA(); };
+sddc_err_t	RadioHandler::SetPGA(bool new_state)    { return hardware->SetPGA(new_state); };
+bool 		RadioHandler::GetRand()                 { return hardware->GetRand(); };
+
+sddc_err_t	RadioHandler::SetLED   (sddc_leds_t led, bool on) { return hardware->SetLED(led, on); };
+
+
+// --- Static functions --- //
+
+size_t RadioHandler::GetDeviceListLength()
+{
+	TracePrintf("RadioHandler::GetDeviceListLength()\n");
+	auto fx3_handler = CreateUsbHandler();
+	size_t len = fx3_handler->GetDeviceListLength();
+	delete fx3_handler;
+
+	return len;
 }
-
-void RadioHandlerClass::UpdBiasT_VHF(bool flag)
+sddc_err_t RadioHandler::GetDevice(uint8_t dev_index, sddc_device_t *dev_pointer)
 {
-	biasT_VHF = flag;
-	if (biasT_VHF)
-		hardware->FX3SetGPIO(BIAS_VHF);
-	else
-		hardware->FX3UnsetGPIO(BIAS_VHF);
-}
+	TracePrintf("RadioHandler::GetDevice(%d, %p)\n", dev_index, dev_pointer);
 
-void RadioHandlerClass::uptLed(int led, bool on)
-{
-	int pin;
-	switch(led)
-	{
-		case 0:
-			pin = LED_YELLOW;
-			break;
-		case 1:
-			pin = LED_RED;
-			break;
-		case 2:
-			pin = LED_BLUE;
-			break;
-		default:
-			return;
-	}
+	auto fx3_handler = CreateUsbHandler();
+	fx3_handler->GetDevice(dev_index, dev_pointer->product, 32, dev_pointer->serial_number, 32);
 
-	if (on)
-		hardware->FX3SetGPIO(pin);
-	else
-		hardware->FX3UnsetGPIO(pin);
+	/* Old code, I don't know his exact role
+	// https://en.wikipedia.org/wiki/West_Bridge
+	int retry = 2;
+	while ((strncmp("WestBridge", devicelist.dev[idx],sizeof("WestBridge")) != NULL) && retry-- > 0)
+		Fx3->Enumerate(idx, devicelist.dev[idx]); // if it enumerates as BootLoader retry
+	idx++;
+	*/
+	delete fx3_handler;
+
+	return ERR_SUCCESS;
 }

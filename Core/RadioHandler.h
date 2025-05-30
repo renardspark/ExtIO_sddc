@@ -1,342 +1,173 @@
-#ifndef RADIOHANDLER_H
-#define RADIOHANDLER_H
+/*
+ * This file is part of SDDC_Driver.
+ *
+ * Copyright (C) 2020 - Oscar Steila
+ * Copyright (C) 2020 - Howard Su
+ * Copyright (C) 2025 - RenardSpark
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-#include "license.txt" 
+#ifndef _H_RADIOHANDLER
+#define _H_RADIOHANDLER
 
 #include "config.h"
+#include <array>
+#include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
 #include "FX3Class.h"
+#include "radio/RadioHardware.h"
 
 #include "dsp/ringbuffer.h"
+
+using namespace std;
 
 class RadioHardware;
 class r2iqControlClass;
 
 enum {
-    RESULT_OK,
-    RESULT_BIG_STEP,
-    RESULT_TOO_HIGH,
-    RESULT_TOO_LOW,
-    RESULT_NOT_POSSIBLE
+	RESULT_OK,
+	RESULT_BIG_STEP,
+	RESULT_TOO_HIGH,
+	RESULT_TOO_LOW,
+	RESULT_NOT_POSSIBLE
 };
 
 struct shift_limited_unroll_C_sse_data_s;
 typedef struct shift_limited_unroll_C_sse_data_s shift_limited_unroll_C_sse_data_t;
 
-class RadioHandlerClass {
+class RadioHandler {
 public:
-    RadioHandlerClass();
-    virtual ~RadioHandlerClass();
-    bool Init(fx3class* Fx3, void (*callback)(void* context, const float*, uint32_t), r2iqControlClass *r2iqCntrl = nullptr, void* context = nullptr);
-    bool Start(int srate_idx);
-    bool Stop();
-    bool Close();
-    bool IsReady(){return true;}
+	RadioHandler();
+	~RadioHandler();
+	sddc_err_t Init(uint8_t dev_index);
+	sddc_err_t AttachReal(void (*callback)(void* context, const int16_t*, uint32_t), void* context = nullptr);
+	sddc_err_t AttachIQ(void (*callback)(void* context, const float*, uint32_t), void* context = nullptr);
+	sddc_err_t Start(bool convert_r2iq);
+	sddc_err_t Stop();
 
-    int GetRFAttSteps(const float **steps) const;
-    int UpdateattRF(int attIdx);
+	// --- r2iq --- //
+	sddc_err_t	SetDecimation(uint8_t decimate);
 
-    int GetIFGainSteps(const float **steps) const;
-    int UpdateIFGain(int attIdx);
+	// ----- RF mode ----- //
+	sddc_rf_mode_t	GetBestRFMode(uint64_t freq);
+	sddc_rf_mode_t	GetRFMode();
+	sddc_err_t		SetRFMode(sddc_rf_mode_t mode);
 
-    bool UpdatemodeRF(rf_mode mode);
-    rf_mode GetmodeRF() const {return (rf_mode)modeRF;}
-    bool UptDither (bool b);
-    bool GetDither () {return dither;}
-    bool UptPga(bool b);
-    bool GetPga() { return pga;}
-    bool UptRand (bool b);
-    bool GetRand () {return randout;}
-    uint16_t GetFirmware() { return firmware; }
+	// --- ADC --- //
+	uint32_t	GetADCSampleRate();
+	sddc_err_t	SetADCSampleRate(uint32_t samplefreq);
 
-    uint32_t getSampleRate() { return adcrate; }
-    bool UpdateSampleRate(uint32_t samplerate);
+	// --- Tuner --- //
+	uint32_t    GetCenterFrequency();
+    sddc_err_t  SetCenterFrequency(uint32_t freq);
 
-    float getBps() const { return mBps; }
-    float getSpsIF() const {return mSpsIF; }
+	// --- Bias tee --- //
+	bool		GetBiasT_HF ();
+	sddc_err_t	SetBiasT_HF (bool new_state);
+	bool		GetBiasT_VHF();
+	sddc_err_t	SetBiasT_VHF(bool new_state);
 
-    const char* getName() const;
-    RadioModel getModel() { return radio; }
+	// --- RF/IF adjustments --- //
+	vector<float>   GetAttenuationSteps();
+	array<float, 2> GetAttenuationRange();
+	float           GetAttenuation();
+	sddc_err_t      SetAttenuation(float new_att);
+	vector<float>   GetGainSteps();
+	array<float, 2> GetGainRange();
+	float           GetGain();
+	sddc_err_t      SetGain(float new_gain);
 
-    bool GetBiasT_HF() { return biasT_HF; }
-    void UpdBiasT_HF(bool flag);
-    bool GetBiasT_VHF() { return biasT_VHF; }
-    void UpdBiasT_VHF(bool flag);
+	// --- Misc --- //
+	bool		GetDither();
+	sddc_err_t	SetDither(bool new_state);
+	bool		GetPGA();
+	sddc_err_t	SetPGA(bool new_state);
+	bool		GetRand();
+	sddc_err_t	SetRand(bool new_state);
 
-    uint64_t TuneLO(uint64_t lo);
-    rf_mode PrepareLo(uint64_t lo);
+	// --- GPIOs --- //
+	sddc_err_t	SetLED (sddc_leds_t led, bool on);
+	// ----- //
 
-    void uptLed(int led, bool on);
+	float getRealSamplesPerSecond() const { return real_samples_per_second; }
+	float getIQSamplesPerSecond()   const { return iq_samples_per_second; }
 
-    void EnableDebug(void (*dbgprintFX3)(const char* fmt, ...), bool (*getconsolein)(char* buf, int maxlen)) 
-        { 
-          this->DbgPrintFX3 = dbgprintFX3; 
-          this->GetConsoleIn = getconsolein;
-        };
+	/// --- Hardware infos --- //
+	RadioModel getHardwareModel() { return devModel; }
+	const char *getHardwareName() { return hardware->GetName(); }
+	uint16_t GetHardwareFirmware() { return devFirmware; }
+	// --- //
 
-    bool ReadDebugTrace(uint8_t* pdata, uint8_t len) { return fx3->ReadDebugTrace(pdata, len); }
+
+	void EnableDebug(void (*dbgprintFX3)(const char* fmt, ...), bool (*getconsolein)(char* buf, int maxlen)) 
+		{ 
+		  this->DbgPrintFX3 = dbgprintFX3; 
+		  this->GetConsoleIn = getconsolein;
+		};
+
+	bool ReadDebugTrace(uint8_t* pdata, uint8_t len) { return fx3->ReadDebugTrace(pdata, len); }
+
+	// --- Static functions --- //
+	static size_t GetDeviceListLength();
+	static sddc_err_t GetDevice(uint8_t dev_index, sddc_device_t *dev_pointer);
 
 private:
-    void AdcSamplesProcess();
-    void AbortXferLoop(int qidx);
-    void CaculateStats();
-    void OnDataPacket();
-    r2iqControlClass* r2iqCntrl;
+	fx3class *fx3;
 
-    void (*Callback)(void* context, const float *data, uint32_t length);
-    void *callbackContext;
-    void (*DbgPrintFX3)(const char* fmt, ...);
-    bool (*GetConsoleIn)(char* buf, int maxlen);
+	void CaculateStats();
+	void OnDataPacket();
 
-    bool run;
-    unsigned long count;    // absolute index
+	void (*callbackReal)(void* context, const int16_t *data, uint32_t length);
+	void *callbackRealContext;
+	void (*callbackIQ)(void* context, const float *data, uint32_t length);
+	void *callbackIQContext;
 
-    bool pga;
-    bool dither;
-    bool randout;
-    bool biasT_HF;
-    bool biasT_VHF;
-    uint16_t firmware;
-    rf_mode modeRF;
-    RadioModel radio;
+	void (*DbgPrintFX3)(const char* fmt, ...);
+	bool (*GetConsoleIn)(char* buf, int maxlen);
 
-    // transfer variables
-    ringbuffer<int16_t> inputbuffer;
-    ringbuffer<float> outputbuffer;
+	bool streamRunning = false;
+	unsigned long count;    // absolute index
 
-    // threads
-    std::thread show_stats_thread;
-    std::thread submit_thread;
+	RadioModel devModel;
+	uint16_t devFirmware;
 
-    // stats
-    unsigned long BytesXferred;
-    unsigned long SamplesXIF;
-    float	mBps;
-    float	mSpsIF;
+	// transfer variables
+	ringbuffer<int16_t> real_buffer;
+	ringbuffer<float> iq_buffer;
 
-    fx3class *fx3;
-    uint32_t adcrate;
+	// threads
+	std::thread show_stats_thread;
+	std::thread submit_thread;
 
-    std::mutex fc_mutex;
-    std::mutex stop_mutex;
+	// --- Stats --- //
+	uint32_t count_real_samples   = 0;
+	uint32_t count_iq_samples     = 0;
+	float real_samples_per_second = 0;
+	float iq_samples_per_second   = 0;
+
+	RadioHardware* hardware;
+	std::mutex fc_mutex;
     float fc;
-    RadioHardware* hardware;
-    shift_limited_unroll_C_sse_data_t* stateFineTune;
+	shift_limited_unroll_C_sse_data_t* stateFineTune;
+	r2iqControlClass* r2iqCntrl;
+	bool r2iqEnabled = false;
 };
 
 extern unsigned long Failures;
-
-class RadioHardware {
-public:
-    RadioHardware(fx3class* fx3) : Fx3(fx3), gpios(0) {}
-
-    virtual ~RadioHardware();
-    virtual const char* getName() = 0;
-    virtual rf_mode PrepareLo(uint64_t freq) = 0;
-    virtual float getGain() { return BBRF103_GAINFACTOR; }
-    virtual void Initialize(uint32_t samplefreq) = 0;
-    virtual bool UpdatemodeRF(rf_mode mode) = 0;
-    virtual bool UpdateattRF(int attIndex) = 0;
-    virtual uint64_t TuneLo(uint64_t freq) = 0;
-
-    virtual int getRFSteps(const float** steps ) const { return 0; }
-    virtual int getIFSteps(const float** steps ) const { return 0; }
-    virtual bool UpdateGainIF(int attIndex) { return false; }
-
-    bool FX3producerOn() { return Fx3->Control(STARTFX3); }
-    bool FX3producerOff() { return Fx3->Control(STOPFX3); }
-
-    bool ReadDebugTrace(uint8_t* pdata, uint8_t len) { return Fx3->ReadDebugTrace(pdata, len); }
-
-    bool FX3SetGPIO(uint32_t mask);
-    bool FX3UnsetGPIO(uint32_t mask);
-
-protected:
-    fx3class* Fx3;
-    uint32_t gpios;
-};
-
-class BBRF103Radio : public RadioHardware {
-public:
-    BBRF103Radio(fx3class* fx3);
-    const char* getName() override { return "BBRF103"; }
-    float getGain() override { return BBRF103_GAINFACTOR; }
-    rf_mode PrepareLo(uint64_t freq) override;
-    void Initialize(uint32_t samplefreq) override;
-    bool UpdatemodeRF(rf_mode mode) override;
-    uint64_t TuneLo(uint64_t freq) override;
-    bool UpdateattRF(int attIndex) override;
-    bool UpdateGainIF(int attIndex) override;
-
-    int getRFSteps(const float** steps ) const override;
-    int getIFSteps(const float** steps ) const override;
-
-private:
-    static const int step_size = 29;
-    static const float steps[step_size];
-    static const float hfsteps[3];
-
-    static const int if_step_size = 16;
-    static const float if_steps[if_step_size];
-
-    uint32_t SampleRate;
-};
-
-class RX888Radio : public BBRF103Radio {
-public:
-    RX888Radio(fx3class* fx3) : BBRF103Radio(fx3) {}
-    const char* getName() override { return "RX888"; }
-    float getGain() override { return RX888_GAINFACTOR; }
-};
-
-class RX888R2Radio : public RadioHardware {
-public:
-    RX888R2Radio(fx3class* fx3);
-    const char* getName() override { return "RX888 mkII"; }
-    float getGain() override { return RX888mk2_GAINFACTOR; }
-    rf_mode PrepareLo(uint64_t freq) override;
-    void Initialize(uint32_t samplefreq) override;
-    bool UpdatemodeRF(rf_mode mode) override;
-    uint64_t TuneLo(uint64_t freq) override;
-    bool UpdateattRF(int attIndex) override;
-    bool UpdateGainIF(int attIndex) override;
-
-    int getRFSteps(const float** steps ) const override;
-    int getIFSteps(const float** steps ) const override;
-
-private:
-    static const int  hf_rf_step_size = 64;
-    static const int  hf_if_step_size = 127;
-    static const int vhf_if_step_size = 16;
-    static const int vhf_rf_step_size = 29;
-
-    float  hf_rf_steps[hf_rf_step_size];
-    float  hf_if_steps[hf_if_step_size];
-    static const float vhf_rf_steps[vhf_rf_step_size];
-    static const float vhf_if_steps[vhf_if_step_size];
-
-    uint32_t SampleRate;
-};
-
-class RX888R3Radio : public RadioHardware {
-public:
-    RX888R3Radio(fx3class* fx3);
-    const char* getName() override { return "RX888 mkIII"; }
-    float getGain() override { return RX888mk2_GAINFACTOR; }
-    rf_mode PrepareLo(uint64_t freq) override;
-    void Initialize(uint32_t samplefreq) override;
-    bool UpdatemodeRF(rf_mode mode) override;
-    uint64_t TuneLo(uint64_t freq) override;
-    bool UpdateattRF(int attIndex) override;
-    bool UpdateGainIF(int attIndex) override;
-
-    int getRFSteps(const float** steps ) const override;
-    int getIFSteps(const float** steps ) const override;
-
-private:
-    static const int  hf_rf_step_size = 64;
-    static const int  hf_if_step_size = 127;
-    static const int vhf_if_step_size = 16;
-    static const int vhf_rf_step_size = 29;
-
-    float  hf_rf_steps[hf_rf_step_size];
-    float  hf_if_steps[hf_if_step_size];
-    static const float vhf_rf_steps[vhf_rf_step_size];
-    static const float vhf_if_steps[vhf_if_step_size];
-
-    uint32_t SampleRate;
-};
-
-class RX999Radio : public RadioHardware {
-public:
-    RX999Radio(fx3class* fx3);
-    const char* getName() override { return "RX999"; }
-    float getGain() override { return RX888_GAINFACTOR; }
-
-    rf_mode PrepareLo(uint64_t freq) override;
-    void Initialize(uint32_t samplefreq) override;
-    bool UpdatemodeRF(rf_mode mode) override;
-    uint64_t TuneLo(uint64_t freq) override;
-    bool UpdateattRF(int attIndex) override;
-    bool UpdateGainIF(int attIndex) override;
-
-    int getRFSteps(const float** steps ) const override;
-    int getIFSteps(const float** steps ) const override;
-
-private:
-    static const int if_step_size = 127;
-
-    float  if_steps[if_step_size];
-    uint32_t SampleRate;
-};
-
-class HF103Radio : public RadioHardware {
-public:
-    HF103Radio(fx3class* fx3);
-    const char* getName() override { return "HF103"; }
-    float getGain() override { return HF103_GAINFACTOR; }
-
-    rf_mode PrepareLo(uint64_t freq) override;
-
-    void Initialize(uint32_t samplefreq) override {};
-
-    bool UpdatemodeRF(rf_mode mode) override;
-
-    uint64_t TuneLo(uint64_t freq) override { return 0; }
-
-    bool UpdateattRF(int attIndex) override;
-
-    int getRFSteps(const float** steps ) const override;
-
-private:
-    static const int step_size = 64;
-    float steps[step_size];
-};
-
-class RXLucyRadio : public RadioHardware {
-public:
-    RXLucyRadio(fx3class* fx3);
-    const char* getName() override { return "Lucy"; }
-    float getGain() override { return HF103_GAINFACTOR; }
-
-    rf_mode PrepareLo(uint64_t freq) override;
-    void Initialize(uint32_t samplefreq) override;
-    bool UpdatemodeRF(rf_mode mode) override;
-    uint64_t TuneLo(uint64_t freq) override ;
-    bool UpdateattRF(int attIndex) override;
-    bool UpdateGainIF(int attIndex) override;    
-
-    int getRFSteps(const float** steps) const override;
-    int getIFSteps(const float** steps) const override;
-
-private:
-    static const int step_size = 16;
-    float steps[step_size];
-
-    static const int if_step_size = 64;
-    float if_steps[if_step_size];
-    uint32_t SampleRate;
-};
-
-class DummyRadio : public RadioHardware {
-public:
-    DummyRadio(fx3class* fx3) : RadioHardware(fx3) {}
-    const char* getName() override { return "Dummy"; }
-
-    rf_mode PrepareLo(uint64_t freq) override
-    { return HFMODE;}
-    void Initialize(uint32_t samplefreq) override {}
-    bool UpdatemodeRF(rf_mode mode) override { return true; }
-    bool UpdateattRF(int attIndex) override { return true; }
-    uint64_t TuneLo(uint64_t freq) override {
-        if (freq < 64000000 /2)
-            return 0;
-        else
-            return freq;
-     }
-};
 
 #endif

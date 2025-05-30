@@ -1,3 +1,24 @@
+/*
+ * This file is part of SDDC_Driver.
+ *
+ * Copyright (C) 2021 - Oscar Steila
+ * Copyright (C) 2021 - Howard Su
+ * Copyright (C) 2025 - RenardSpark
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "../RadioHandler.h"
 
 #define ADC_FREQ (64u*1000*1000)
@@ -12,109 +33,129 @@ RXLucyRadio::RXLucyRadio(fx3class *fx3)
     : RadioHardware(fx3)
 {
     // initialize steps
-    for (uint8_t i = 0; i < if_step_size; i++) {
-        this->if_steps[if_step_size - i - 1] = -(
-            ((i & 0x01) != 0) * 0.5f +
-            ((i & 0x02) != 0) * 1.0f +
-            ((i & 0x04) != 0) * 2.0f +
-            ((i & 0x08) != 0) * 4.0f +
-            ((i & 0x010) != 0) * 8.0f +
-            ((i & 0x020) != 0) * 16.0f
-            );
-    }
-
-    for (uint8_t i = 0; i < step_size; i++)
+    for(auto it = if_steps_hf.begin(); it != if_steps_hf.end(); it++)
     {
-            this->steps[step_size - i - 1] = -1.0f * i;
+        int index = it - if_steps_hf.begin();
+        int rf_scale = if_steps_hf.size() - index - 1;
+        *it = -(
+            ((rf_scale & 0x01) != 0) * 0.5f +
+            ((rf_scale & 0x02) != 0) * 1.0f +
+            ((rf_scale & 0x04) != 0) * 2.0f +
+            ((rf_scale & 0x08) != 0) * 4.0f +
+            ((rf_scale & 0x010) != 0) * 8.0f +
+            ((rf_scale & 0x020) != 0) * 16.0f);
+    }
+
+    for (auto it = rf_steps_hf.begin(); it != rf_steps_hf.end(); it++)
+    {
+        int index = it - rf_steps_hf.begin();
+        *it = -1.0f * (rf_steps_hf.size() - index - 1);
     }
 }
 
-void RXLucyRadio::Initialize(uint32_t adc_rate)
-{
-    SampleRate = adc_rate;
-    Fx3->Control(STARTADC, adc_rate);
-}
 
-
-rf_mode RXLucyRadio::PrepareLo(uint64_t freq)
+sddc_rf_mode_t RXLucyRadio::GetBestRFMode(uint64_t freq)
 {
     if (freq < 35000ll * 1000) return NOMODE;
     if (freq > 6000ll * 1000 * 1000) return NOMODE;
 
-    if ( freq >= this->SampleRate / 2)
+    if ( freq >= this->sampleRate / 2)
         return VHFMODE;
     else
         return HFMODE;
 }
 
 
-bool RXLucyRadio::UpdateattRF(int att)
+sddc_err_t RXLucyRadio::SetRFAttenuation_HF(int att)
 {
-    if (att > step_size - 1) att = step_size - 1;
+    if (att >= rf_steps_hf.size()) att = rf_steps_hf.size() - 1;
     if (att < 0) att = 0;
-    uint8_t d = step_size - att - 1;
+    uint8_t d = rf_steps_hf.size() - att - 1;
 
-    DbgPrintf("UpdateattRF %f \n", this->steps[att]);
-    return Fx3->SetArgument(VHF_ATTENUATOR, d);
+    DbgPrintf("UpdateattRF %f \n", this->rf_steps_hf[att]);
+    return Fx3->SetArgument(VHF_ATTENUATOR, d) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
 }
-bool RXLucyRadio::UpdateGainIF(int att)  //HF103 now
+sddc_err_t RXLucyRadio::SetRFAttenuation_VHF(uint16_t)
 {
-    if (att > if_step_size - 1) att = if_step_size - 1;
+    return ERR_NOT_COMPATIBLE;
+}
+
+sddc_err_t RXLucyRadio::SetIFGain_HF(int att)  //HF103 now
+{
+    if (att >= if_steps_hf.size()) att = if_steps_hf.size() - 1;
     if (att < 0) att = 0;
-    uint8_t d = if_step_size - att - 1;
+    uint8_t d = if_steps_hf.size() - att - 1;
 
-    DbgPrintf("UpdateattRF %f \n", this->if_steps[att]);
+    DbgPrintf("UpdateattRF %f \n", this->if_steps_hf[att]);
 
-    return Fx3->SetArgument(DAT31_ATT, d);
+    return Fx3->SetArgument(DAT31_ATT, d) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
 }
-
-uint64_t RXLucyRadio::TuneLo(uint64_t freq)
+sddc_err_t RXLucyRadio::SetIFGain_VHF(int att)
 {
-    if (!(gpios & VHF_EN))
-    {
-        // this is in HF mode
-        return 0;
-    }
-    else
-    {
-        Fx3->Control(TUNERTUNE, freq + IF_FREQ);
-
-        // Set VCXO
-        return freq - IF_FREQ;
-    }
-
+    return ERR_NOT_COMPATIBLE;
 }
-bool RXLucyRadio::UpdatemodeRF(rf_mode mode)
+
+uint32_t RXLucyRadio::GetTunerCarrier_HF()
+{
+    return 0;
+}
+sddc_err_t RXLucyRadio::SetLOFreq_HF(uint32_t freq)
+{
+    return ERR_NOT_COMPATIBLE;
+}
+uint32_t RXLucyRadio::GetTunerCarrier_VHF()
+{
+    return IF_FREQ;
+}
+sddc_err_t RXLucyRadio::SetLOFreq_VHF(uint32_t freq)
+{
+    if(!Fx3->Control(TUNERTUNE, freq + IF_FREQ))
+        return ERR_FX3_TRANSFER_FAILED;
+
+    freqLO_VHF = freq;
+
+    return ERR_SUCCESS;
+}
+
+sddc_err_t RXLucyRadio::SetRFMode(sddc_rf_mode_t mode)
 {
     if (mode == VHFMODE)
     {
         // switch to VHF Attenna
-        FX3SetGPIO(VHF_EN);
+        sddc_err_t ret = SetGPIO(VHF_EN);
+        if(ret != ERR_SUCCESS) return ret;
 
         // Initialize VCO
 
         // Initialize Mixer
-        return Fx3->Control(TUNERINIT, (uint32_t)0);
+        return Fx3->Control(TUNERINIT, (uint32_t)0) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
     }
     else if (mode == HFMODE)
     {
-        Fx3->Control(TUNERSTDBY);
-        return FX3UnsetGPIO(VHF_EN);                // switch to HF Attenna
+        if(!Fx3->Control(TUNERSTDBY))
+            return ERR_FX3_TRANSFER_FAILED;
+
+        return UnsetGPIO(VHF_EN);                // switch to HF Attenna
     }
-    return false;
+    return ERR_NOT_COMPATIBLE;
 }
 
-int RXLucyRadio::getRFSteps(const float **steps) const
+vector<float> RXLucyRadio::GetRFSteps_HF()
 {
-    *steps = this->steps;
-    return step_size;
+    return this->rf_steps_hf;
 }
-
-int RXLucyRadio::getIFSteps(const float** steps) const
+vector<float> RXLucyRadio::GetRFSteps_VHF()
 {
-        *steps = this->if_steps;
-        return if_step_size;
+    return vector<float>();
 }
 
+vector<float> RXLucyRadio::GetIFSteps_HF()
+{
+    return this->if_steps_hf;
+}
+vector<float> RXLucyRadio::GetIFSteps_VHF()
+{
+    return vector<float>();
+}
 
 

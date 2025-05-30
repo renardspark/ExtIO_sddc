@@ -243,7 +243,7 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<float>
 void * fft_mt_r2iq::r2iqThreadf(r2iqThreadArg *th)
 {
 #ifdef NO_SIMD_OPTIM
-	DbgPrintf("Hardware Capability: all SIMD features (AVX, AVX2, AVX512) deactivated\n");
+	DebugPrintf("fft_mt_r2iq - Hardware Capability: all SIMD features (AVX, AVX2, AVX512) deactivated\n");
 	return r2iqThreadf_def(th);
 #else
 #if defined(DETECT_AVX)
@@ -266,7 +266,7 @@ void * fft_mt_r2iq::r2iqThreadf(r2iqThreadArg *th)
 		HW_AVX512F     = (info[1] & ((int)1 << 16)) != 0;
 	}
 
-	DbgPrintf("Hardware Capability: AVX:%d AVX2:%d AVX512:%d\n", HW_AVX, HW_AVX2, HW_AVX512F);
+	DebugPrintf("fft_mt_r2iq - Hardware Capability: AVX:%s AVX2:%s AVX512:%s\n", HW_AVX ? "yes" : "no", HW_AVX2 ? "yes" : "no", HW_AVX512F ? "yes" : "no");
 
 	if (HW_AVX512F)
 		return r2iqThreadf_avx512(th);

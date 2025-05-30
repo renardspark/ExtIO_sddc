@@ -20,16 +20,18 @@ class fx3class
 {
 public:
 	virtual ~fx3class(void) {}
-	virtual bool Open() = 0;
+	virtual bool Open(uint8_t dev_index) = 0;
 	virtual bool Control(FX3Command command, uint8_t data = 0) = 0;
 	virtual bool Control(FX3Command command, uint32_t data) = 0;
 	virtual bool Control(FX3Command command, uint64_t data) = 0;
 	virtual bool SetArgument(uint16_t index, uint16_t value) = 0;
 	virtual bool GetHardwareInfo(uint32_t* data) = 0;
 	virtual bool ReadDebugTrace(uint8_t* pdata, uint8_t len) = 0;
-	virtual void StartStream(ringbuffer<int16_t>& input, int numofblock) = 0;
+	virtual void StartStream(ringbuffer<int16_t>& input) = 0;
 	virtual void StopStream() = 0;
 	virtual bool Enumerate(unsigned char& idx, char* lbuf) = 0;
+	virtual size_t GetDeviceListLength() = 0;
+	virtual bool GetDevice(unsigned char &idx, char *name, size_t name_len, char *serial, size_t serial_len) = 0;
 };
 
 extern "C" fx3class* CreateUsbHandler();

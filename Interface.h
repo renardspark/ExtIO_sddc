@@ -103,7 +103,7 @@ enum GPIOPin {
     PGA_EN = OUTXI16,
 };
 
-enum RadioModel {
+typedef enum RadioModel {
     NORADIO = 0x00,
     BBRF103 = 0x01,
     HF103 = 0x02,
@@ -112,7 +112,7 @@ enum RadioModel {
     RX999 = 0x05,
     RXLUCY = 0x06,
     RX888r3 = 0x07,
-};
+} RadioModel;
 
 enum ArgumentList {
     // Set R8xx lna/mixer gain

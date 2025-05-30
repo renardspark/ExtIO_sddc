@@ -1,8 +1,23 @@
-#include "license.txt" 
+/*
+ * This file is part of SDDC_Driver.
+ *
+ * Copyright (C) 2020 - Oscar Steila
+ * Copyright (C) 2025 - RenardSpark
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "config.h"
 
 bool saveADCsamplesflag = false;
-uint32_t  adcnominalfreq = DEFAULT_ADC_FREQ; 
-uint32_t MIN_ADC_FREQ = 50000000;	   // ADC sampling frequency minimum
-uint32_t MAX_ADC_FREQ = 140000000;	// ADC sampling frequency minimum
-uint32_t N2_BANDSWITCH = 80000000;    // threshold 5 or 6 SR bandwidths

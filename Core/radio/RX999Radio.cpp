@@ -1,3 +1,23 @@
+/*
+ * This file is part of SDDC_Driver.
+ *
+ * Copyright (C) 2020 - Howard Su
+ * Copyright (C) 2025 - RenardSpark
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "../RadioHandler.h"
 
 #define ADC_FREQ (128u*1000*1000)
@@ -18,101 +38,123 @@ RX999Radio::RX999Radio(fx3class *fx3)
 #else
     float ratio = 0.059f;
 #endif
-    for (uint8_t i = 0; i < if_step_size; i++)
+    for (auto it = if_steps_hf.begin(); it != if_steps_hf.end(); it++)
     {
-        this->if_steps[i] = -30.0f + ratio * (i + 1);
+        int index = it - if_steps_hf.begin();
+        *it = -30.0f + ratio * (index + 1);
     }
 }
 
-void RX999Radio::Initialize(uint32_t adc_rate)
-{
-    SampleRate = adc_rate;
-    Fx3->Control(STARTADC, adc_rate);
-}
 
-
-rf_mode RX999Radio::PrepareLo(uint64_t freq)
+sddc_rf_mode_t RX999Radio::GetBestRFMode(uint64_t freq)
 {
     if (freq < 10 * 1000) return NOMODE;
     if (freq > 6000ll * 1000 * 1000) return NOMODE;
 
-    if ( freq >= this->SampleRate / 2)
+    if ( freq >= this->sampleRate / 2)
         return VHFMODE;
     else
         return HFMODE;
 }
 
-bool RX999Radio::UpdatemodeRF(rf_mode mode)
+sddc_err_t RX999Radio::SetRFMode(sddc_rf_mode_t mode)
 {
     if (mode == VHFMODE)
     {
         // switch to VHF Attenna
-        FX3SetGPIO(VHF_EN);
+        sddc_err_t ret = SetGPIO(VHF_EN);
+        if(ret != ERR_SUCCESS) return ret;
 
         // Initialize VCO
 
         // Initialize Mixer
-        return Fx3->Control(TUNERINIT, (uint32_t)0);
+        return Fx3->Control(TUNERINIT, (uint32_t)0) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
     }
     else if (mode == HFMODE)
     {
-        Fx3->Control(TUNERSTDBY);
-        return FX3UnsetGPIO(VHF_EN);                // switch to HF Attenna
+        if(!Fx3->Control(TUNERSTDBY))
+            return ERR_FX3_TRANSFER_FAILED;
+
+        return UnsetGPIO(VHF_EN);                // switch to HF Attenna
     }
 
-    return false;
+    return ERR_NOT_COMPATIBLE;
 }
 
 
-bool RX999Radio::UpdateattRF(int att)
+sddc_err_t RX999Radio::SetRFAttenuation_HF(int att)
 {
-    return false;
+    return ERR_NOT_COMPATIBLE;
 }
-
-uint64_t RX999Radio::TuneLo(uint64_t freq)
+sddc_err_t RX999Radio::SetRFAttenuation_VHF(uint16_t)
 {
-    if (!(gpios & VHF_EN))
-    {
-        // this is in HF mode
-        return 0;
-    }
-    else
-    {
-        int sel;
-        // set preselector
-        if (freq <= 120*1000*1000) sel = 0b111;
-        else if (freq <= 250*1000*1000) sel = 0b101;
-        else if (freq <= 300*1000*1000) sel = 0b110;
-        else if (freq <= 380*1000*1000) sel = 0b100;
-        else if (freq <= 500*1000*1000) sel = 0b000;
-        else if (freq <= 1000ll*1000*1000) sel = 0b010;
-        else if (freq <= 2000ll*1000*1000) sel = 0b001;
-        else sel = 0b011;
-
-        Fx3->Control(TUNERTUNE, freq + IF_FREQ);
-
-        Fx3->SetArgument(PRESELECTOR, sel);
-        // Set VCXO
-        return freq - IF_FREQ;
-    }
+    return ERR_NOT_COMPATIBLE;
 }
 
-int RX999Radio::getRFSteps(const float **steps) const
+uint32_t RX999Radio::GetTunerCarrier_HF()
 {
     return 0;
 }
-
-int RX999Radio::getIFSteps(const float **steps) const
+sddc_err_t RX999Radio::SetLOFreq_HF(uint32_t freq)
 {
-    *steps = this->if_steps;
-    return if_step_size;
+    return ERR_NOT_COMPATIBLE;
+}
+uint32_t RX999Radio::GetTunerCarrier_VHF()
+{
+    return IF_FREQ;
+}
+sddc_err_t RX999Radio::SetLOFreq_VHF(uint32_t freq)
+{
+    int sel;
+    // set preselector
+    if (freq <= 120*1000*1000) sel = 0b111;
+    else if (freq <= 250*1000*1000) sel = 0b101;
+    else if (freq <= 300*1000*1000) sel = 0b110;
+    else if (freq <= 380*1000*1000) sel = 0b100;
+    else if (freq <= 500*1000*1000) sel = 0b000;
+    else if (freq <= 1000ll*1000*1000) sel = 0b010;
+    else if (freq <= 2000ll*1000*1000) sel = 0b001;
+    else sel = 0b011;
+
+    if(!Fx3->Control(TUNERTUNE, freq + IF_FREQ))
+        return ERR_FX3_TRANSFER_FAILED;
+
+    if(!Fx3->SetArgument(PRESELECTOR, sel))
+        return ERR_FX3_TRANSFER_FAILED;
+
+    freqLO_VHF = freq;
+    // Set VCXO
+    return ERR_SUCCESS;
 }
 
-bool RX999Radio::UpdateGainIF(int gain_index)
+vector<float> RX999Radio::GetRFSteps_HF()
+{
+    return vector<float>();
+}
+vector<float> RX999Radio::GetRFSteps_VHF()
+{
+    return vector<float>();
+}
+
+vector<float> RX999Radio::GetIFSteps_HF()
+{
+    return this->if_steps_hf;
+}
+vector<float> RX999Radio::GetIFSteps_VHF()
+{
+    return GetIFSteps_HF();
+}
+
+sddc_err_t RX999Radio::SetIFGain_HF(int gain_index)
 {
     uint8_t gain = MODE | (gain_index + 1);
 
     DbgPrintf("UpdateGainIF %d \n", gain);
 
-    return Fx3->SetArgument(AD8340_VGA, gain);
+    return Fx3->SetArgument(AD8340_VGA, gain) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
+}
+
+sddc_err_t RX999Radio::SetIFGain_VHF(int gain_index)
+{
+    return SetIFGain_HF(gain_index);
 }
