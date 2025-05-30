@@ -12,7 +12,7 @@ using namespace std::chrono;
 
 class fx3handler : public fx3class
 {
-    bool Open()
+    bool Open(uint8_t)
     {
         return true;
     }
@@ -78,16 +78,30 @@ class fx3handler : public fx3class
         run = false;
         emuthread.join();
     }
+
+    size_t GetDeviceListLength()
+    {
+        return 0;
+    }
+
+    bool GetDevice(unsigned char &a, char *b, size_t c, char *d, size_t e)
+    {
+        return true;
+    }
+
+    
 public:
 	long Xfers(bool clear) { long rv=nxfers; if (clear) nxfers=0; return rv; }
+
+
 };
 
-static uint32_t count;
+static uint32_t frame_count;
 static uint64_t totalsize;
 
 static void Callback(void* context, const float* data, uint32_t len)
 {
-    count++;
+    frame_count++;
     totalsize += len;
 }
 
@@ -95,85 +109,87 @@ namespace {
     struct CoreFixture {};
 }
 
+TEST_CASE(CoreFixture, OpenTest)
+{
+    auto radio = new RadioHandler();
+
+    radio = new RadioHandler();
+    delete radio;
+}
+
 TEST_CASE(CoreFixture, BasicTest)
 {
-    auto usb = new fx3handler();
+    auto radio = new RadioHandler();
 
-    auto radio = new RadioHandlerClass();
+    radio->AttachIQ(Callback);
 
-    radio->Init(usb, Callback);
+    REQUIRE_EQUAL(radio->getHardwareModel(), NORADIO);
+    REQUIRE_EQUAL(radio->getHardwareName(), "Dummy");
 
-    REQUIRE_EQUAL(radio->getModel(), NORADIO);
-    REQUIRE_EQUAL(radio->getName(), "Dummy");
-
-    REQUIRE_EQUAL(radio->getSampleRate(), 64000000u);
-    radio->UpdateSampleRate(128000000);
-    REQUIRE_EQUAL(radio->getSampleRate(), 128000000u);
+    REQUIRE_EQUAL(radio->GetADCSampleRate(), 64000000u);
+    radio->SetADCSampleRate(128000000);
+    REQUIRE_EQUAL(radio->GetADCSampleRate(), 128000000u);
 
     REQUIRE_EQUAL(radio->GetDither(), false);
-    radio->UptDither(true);
+    radio->SetDither(true);
     REQUIRE_EQUAL(radio->GetDither(), true);
 
     REQUIRE_EQUAL(radio->GetRand(), false);
-    radio->UptRand(true);
+    radio->SetRand(true);
     REQUIRE_EQUAL(radio->GetRand(), true);
 
-    REQUIRE_EQUAL(radio->GetPga(), false);
-    radio->UptPga(true);
-    REQUIRE_EQUAL(radio->GetPga(), true);
+    REQUIRE_EQUAL(radio->GetPGA(), false);
+    radio->SetPGA(true);
+    REQUIRE_EQUAL(radio->GetPGA(), true);
 
     REQUIRE_EQUAL(radio->GetBiasT_HF(), false);
-    radio->UpdBiasT_HF(true);
+    radio->SetBiasT_HF(true);
     REQUIRE_EQUAL(radio->GetBiasT_HF(), true);
 
     REQUIRE_EQUAL(radio->GetBiasT_VHF(), false);
-    radio->UpdBiasT_VHF(true);
+    radio->SetBiasT_VHF(true);
     REQUIRE_EQUAL(radio->GetBiasT_VHF(), true);
 
     delete radio;
-    delete usb;
 }
 
 TEST_CASE(CoreFixture, R2IQTest)
 {
-    auto usb = new fx3handler();
+    auto radio = new RadioHandler();
+    radio->Init(0);
 
-    auto radio = new RadioHandlerClass();
-
-    radio->Init(usb, Callback);
+    radio->AttachIQ(Callback);
 
     for (int decimate = 0; decimate < 5; decimate++)
     {
-        count = 0;
+        frame_count = 0;
         totalsize = 0;
-        radio->Start(decimate); // full bandwidth
+        radio->SetDecimation(decimate);
+        radio->Start(true); // full bandwidth
         std::this_thread::sleep_for(1s);
         radio->Stop();
 
-        REQUIRE_TRUE(count > 0);
+        REQUIRE_TRUE(frame_count > 0);
         REQUIRE_TRUE(totalsize > 0);
-        REQUIRE_EQUAL(totalsize / count, transferSamples / 2);
-        printf("decimate=%d nxfers=%ld count=%u totalsize=%" PRIu64 "\n",
-            decimate, usb->Xfers(true), count, totalsize);
+        REQUIRE_EQUAL(totalsize / frame_count, transferSamples);
     }
 
     delete radio;
-    delete usb;
 }
 
 TEST_CASE(CoreFixture, TuneTest)
 {
-    auto usb = new fx3handler();
+    auto radio = new RadioHandler();
+    radio->Init(0);
 
-    auto radio = new RadioHandlerClass();
+    radio->AttachIQ(Callback);
 
-    radio->Init(usb, Callback);
-
-    radio->Start(1); // full bandwidth
+    radio->SetDecimation(1); // full bandwidth
+    radio->Start(true);
 
     for (uint64_t i = 1000; i < 15000000;  i+=377000)
     {
-        radio->TuneLO(i);
+        radio->SetCenterFrequency(i);
         std::this_thread::sleep_for(0.011s);
     }
 
@@ -181,5 +197,4 @@ TEST_CASE(CoreFixture, TuneTest)
 
 
     delete radio;
-    delete usb;
 }
