@@ -155,7 +155,6 @@ public:
 
     double masterClockRate;
 };
-<<<<<<< HEAD
 
 
 
@@ -311,5 +310,3 @@ virtual std::string     readUART (const std::string &which, const long timeoutUs
  
 virtual void *  getNativeDeviceHandle (void) const
 */
-=======
->>>>>>> origin/master

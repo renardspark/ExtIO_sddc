@@ -133,32 +133,15 @@ void SoapySDDC::setAntenna(const int direction, const size_t, const std::string 
 
     if(name == "HF")
     {
-<<<<<<< HEAD
         radio_handler->SetRFMode(HFMODE);
-        radio_handler->SetBiasT_HF(true);
-        radio_handler->SetBiasT_VHF(false);
         return;
-=======
-        RadioHandler.UpdatemodeRF(HFMODE);
-    }
-    else if (name == "VHF")
-    {
-        RadioHandler.UpdatemodeRF(VHFMODE);
-    }
-    else
-    {
-        RadioHandler.UpdBiasT_HF(false);
-        RadioHandler.UpdBiasT_VHF(false);
->>>>>>> origin/master
     }
 
     if(name == "VHF")
     {
         radio_handler->SetRFMode(VHFMODE);
-        radio_handler->SetBiasT_VHF(true);
-        radio_handler->SetBiasT_HF(false);
+        return;
     }
-
     
     radio_handler->SetBiasT_HF(false);
     radio_handler->SetBiasT_VHF(false);
@@ -443,12 +426,12 @@ void SoapySDDC::writeSetting(const std::string &key, const std::string &value)
     if (key == "UpdBiasT_HF")
     {
         biasTee = (value == "true") ? true: false;
-        RadioHandler.UpdBiasT_HF(biasTee);
+        radio_handler->SetBiasT_HF(biasTee);
     }
     else if (key == "UpdBiasT_VHF")
     {
         biasTee = (value == "true") ? true: false;
-        RadioHandler.UpdBiasT_VHF(biasTee);
+        radio_handler->SetBiasT_VHF(biasTee);
     }
 }
 
