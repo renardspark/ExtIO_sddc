@@ -279,21 +279,11 @@ void * fft_mt_r2iq::r2iqThreadf(r2iqThreadArg *th)
 
 	DebugPrintf("fft_mt_r2iq - Hardware Capability: AVX:%s AVX2:%s AVX512:%s\n", HW_AVX ? "yes" : "no", HW_AVX2 ? "yes" : "no", HW_AVX512F ? "yes" : "no");
 
-	if (HW_AVX512F)
-		return r2iqThreadf_avx512(th);
-	else if (HW_AVX2)
-		return r2iqThreadf_avx2(th);
-	else if (HW_AVX)
-		return r2iqThreadf_avx(th);
-	else
-		return r2iqThreadf_def(th);
+	return r2iqThreadf_def(th);
 #elif defined(DETECT_NEON)
 	bool NEON = detect_neon();
 	DbgPrintf("Hardware Capability: NEON:%d\n", NEON);
-	if (NEON)
-		return r2iqThreadf_neon(th);
-	else
-		return r2iqThreadf_def(th);
+	return r2iqThreadf_def(th);
 #endif
 #endif
 }

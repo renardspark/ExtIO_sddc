@@ -88,10 +88,6 @@ private:
     void *r2iqThreadf(r2iqThreadArg *th);   // thread function
 
     void * r2iqThreadf_def(r2iqThreadArg *th);
-    void * r2iqThreadf_avx(r2iqThreadArg *th);
-    void * r2iqThreadf_avx2(r2iqThreadArg *th);
-    void * r2iqThreadf_avx512(r2iqThreadArg *th);
-    void * r2iqThreadf_neon(r2iqThreadArg *th);
 
     fftwf_complex **filterHw;       // Hw complex to each decimation ratio
 
