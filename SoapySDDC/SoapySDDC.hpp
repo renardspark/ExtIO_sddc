@@ -106,6 +106,10 @@ public:
 
     
 
+    SoapySDR::ArgInfoList getSettingInfo(void) const;
+
+    void writeSetting(const std::string &key, const std::string &value);
+
     // void setMasterClockRate(const double rate);
 
     // double getMasterClockRate(void) const;
@@ -151,6 +155,7 @@ public:
 
     double masterClockRate;
 };
+<<<<<<< HEAD
 
 
 
@@ -306,3 +311,5 @@ virtual std::string     readUART (const std::string &which, const long timeoutUs
  
 virtual void *  getNativeDeviceHandle (void) const
 */
+=======
+>>>>>>> origin/master

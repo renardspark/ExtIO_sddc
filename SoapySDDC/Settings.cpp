@@ -133,10 +133,23 @@ void SoapySDDC::setAntenna(const int direction, const size_t, const std::string 
 
     if(name == "HF")
     {
+<<<<<<< HEAD
         radio_handler->SetRFMode(HFMODE);
         radio_handler->SetBiasT_HF(true);
         radio_handler->SetBiasT_VHF(false);
         return;
+=======
+        RadioHandler.UpdatemodeRF(HFMODE);
+    }
+    else if (name == "VHF")
+    {
+        RadioHandler.UpdatemodeRF(VHFMODE);
+    }
+    else
+    {
+        RadioHandler.UpdBiasT_HF(false);
+        RadioHandler.UpdBiasT_VHF(false);
+>>>>>>> origin/master
     }
 
     if(name == "VHF")
@@ -400,6 +413,45 @@ string SoapySDDC::readSensor(const string key)
     }
     return "";
 }
+
+SoapySDR::ArgInfoList SoapySDDC::getSettingInfo(void) const
+{
+    SoapySDR::ArgInfoList setArgs;
+
+    SoapySDR::ArgInfo BiasTHFArg;
+    BiasTHFArg.key = "UpdBiasT_HF";
+    BiasTHFArg.value = "false";
+    BiasTHFArg.name = "HF Bias Tee enable";
+    BiasTHFArg.description = "Enabe Bias Tee on HF antenna port";
+    BiasTHFArg.type = SoapySDR::ArgInfo::BOOL;
+    setArgs.push_back(BiasTHFArg);
+
+    SoapySDR::ArgInfo BiasTVHFArg;
+    BiasTVHFArg.key = "UpdBiasT_VHF";
+    BiasTVHFArg.value = "false";
+    BiasTVHFArg.name = "VHF Bias Tee enable";
+    BiasTVHFArg.description = "Enabe Bias Tee on VHF antenna port";
+    BiasTVHFArg.type = SoapySDR::ArgInfo::BOOL;
+    setArgs.push_back(BiasTVHFArg);
+
+    return setArgs;
+}
+
+void SoapySDDC::writeSetting(const std::string &key, const std::string &value)
+{
+    bool biasTee;
+    if (key == "UpdBiasT_HF")
+    {
+        biasTee = (value == "true") ? true: false;
+        RadioHandler.UpdBiasT_HF(biasTee);
+    }
+    else if (key == "UpdBiasT_VHF")
+    {
+        biasTee = (value == "true") ? true: false;
+        RadioHandler.UpdBiasT_VHF(biasTee);
+    }
+}
+
 
 // void SoapySDDC::setMasterClockRate(const double rate)
 // {
