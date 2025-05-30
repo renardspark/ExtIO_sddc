@@ -290,3 +290,4 @@ Makefile
 /git-state.txt
 /generated/
 LIBCPPUNIT-prefix/
+/docs
