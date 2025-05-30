@@ -1,150 +1,119 @@
 /*
- * libsddc - low level functions for wideband SDR receivers like
- *           BBRF103, RX-666, RX888, HF103, etc
+ * This file is part of SDDC_Driver.
  *
- * Copyright (C) 2020 by Franco Venturi
+ * Copyright (C) 2020 - Fraco Venturi
+ * Copyright (C) 2020 - Howard Su
+ * Copyright (C) 2025 - RenardSpark
  *
- * this program is free software: you can redistribute it and/or modify
+ * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  *
- * this program is distributed in the hope that it will be useful,
+ * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- *
- * SPDX-License-Identifier: GPL-3.0-or-later
  */
 
-#ifndef __LIBSDDC_H
-#define __LIBSDDC_H
+#ifndef __H_LIBSDDC
+#define __H_LIBSDDC
+
+#include <stdint.h>
+#include <stdbool.h>
+#include "types.h"
+#include "../Interface.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stdint.h>
+// --- Static functions --- //
+uint16_t sddc_get_device_count();
+sddc_err_t sddc_get_device(uint8_t dev_index, struct sddc_device_t *dev);
+// --- //
 
-typedef struct sddc sddc_t;
+// ----- libsddc ----- //
 
-struct sddc_device_info {
-	const char *manufacturer;
-	const char *product;
-	const char *serial_number;
-};
-
-enum SDDCStatus {
-	SDDC_STATUS_OFF,
-	SDDC_STATUS_READY,
-	SDDC_STATUS_STREAMING,
-	SDDC_STATUS_FAILED = 0xff
-};
-
-enum SDDCHWModel {
-	HW_NORADIO,
-	HW_BBRF103,
-	HW_HF103,
-	HW_RX888,
-	HW_RX888R2,
-	HW_RX999,
-	HW_RX888R3,
-};
-
-enum RFMode {
-	NO_RF_MODE,
-	HF_MODE,
-	VHF_MODE
-};
-
-enum LEDColors {
-	YELLOW_LED = 0x01,
-	RED_LED    = 0x02,
-	BLUE_LED   = 0x04
-};
-
-/* basic functions */
-int sddc_get_device_count();
-int sddc_get_device_info(struct sddc_device_info **sddc_device_infos);
-int sddc_free_device_info(struct sddc_device_info *sddc_device_infos);
-
-sddc_t*	sddc_open(int index);
-void	sddc_close(sddc_t *t);
-
-enum SDDCStatus		sddc_get_status(sddc_t *t);
-enum SDDCHWModel	sddc_get_hw_model(sddc_t *t);
-const char*			sddc_get_hw_model_name(sddc_t *t);
-
-uint16_t sddc_get_firmware(sddc_t *t);
-
-const double *sddc_get_frequency_range(sddc_t *t);
-
-enum RFMode	sddc_get_rf_mode(sddc_t *t);
-int			sddc_set_rf_mode(sddc_t *t, enum RFMode rf_mode);
-
-
-/* LED functions */
-int sddc_led_on		(sddc_t *t, uint8_t led_pattern);
-int sddc_led_off	(sddc_t *t, uint8_t led_pattern);
-int sddc_led_toggle	(sddc_t *t, uint8_t led_pattern);
-
-
-/* ADC functions */
-int sddc_get_adc_dither(sddc_t *t);
-int sddc_set_adc_dither(sddc_t *t, int dither);
-
-int sddc_get_adc_random(sddc_t *t);
-int sddc_set_adc_random(sddc_t *t, int random);
-
-int sddc_get_adc_sample
-
-
-/* HF block functions */
-double	sddc_get_hf_attenuation(sddc_t *t);
-int		sddc_set_hf_attenuation(sddc_t *t, double attenuation);
-
-int		sddc_get_hf_bias(sddc_t *t);
-int		sddc_set_hf_bias(sddc_t *t, int bias);
-
-
-/* VHF block and VHF/UHF tuner functions */
-double	sddc_get_tuner_frequency(sddc_t *t);
-int		sddc_set_tuner_frequency(sddc_t *t, double frequency);
-
-int		sddc_get_tuner_rf_attenuations(sddc_t *t, const double *attenuations[]);
-double	sddc_get_tuner_rf_attenuation(sddc_t *t);
-int		sddc_set_tuner_rf_attenuation(sddc_t *t, double attenuation);
-
-int		sddc_get_tuner_if_attenuations(sddc_t *t, const double *attenuations[]);
-double	sddc_get_tuner_if_attenuation(sddc_t *t);
-int		sddc_set_tuner_if_attenuation(sddc_t *t, double attenuation);
-
-int		sddc_get_vhf_bias(sddc_t *t);
-int		sddc_set_vhf_bias(sddc_t *t, int bias);
-
-
-/* streaming functions */
-typedef void (*sddc_read_async_cb_t)(uint32_t data_size, uint8_t *data,
+typedef void (*sddc_read_async_cb_t)(uint32_t data_size, const float *data,
 										void *context);
 
-double	sddc_get_sample_rate(sddc_t *t);
-int		sddc_set_sample_rate(sddc_t *t, double sample_rate);
+typedef struct libsddc_handler* libsddc_handler_t;
 
-int		sddc_set_async_params(sddc_t *t, uint32_t frame_size, 
-							uint32_t num_frames, sddc_read_async_cb_t callback,
-							void *callback_context);
+// Init and destroy
+libsddc_handler_t sddc_create();
+sddc_err_t	sddc_init(libsddc_handler_t, uint8_t dev_index);
+void		sddc_destroy(libsddc_handler_t);
 
-int		sddc_start_streaming(sddc_t *t);
-int		sddc_stop_streaming(sddc_t *t);
 
-int		sddc_handle_events(sddc_t *t);
 
-int		sddc_reset_status(sddc_t *t);
 
-int		sddc_read_sync(sddc_t *t, uint8_t *data, int length, int *transferred);
+sddc_err_t	sddc_set_stream_callback(
+	libsddc_handler_t t,
+	sddc_read_async_cb_t callback,
+	void *callback_context);
+
+
+
+
+
+
+
+// --- Streaming --- //
+sddc_err_t	sddc_start_streaming(libsddc_handler_t t);
+sddc_err_t	sddc_stop_streaming(libsddc_handler_t t);
+
+// --- Hardware infos --- //
+RadioModel		sddc_get_model(libsddc_handler_t t);
+const char*		sddc_get_model_name(libsddc_handler_t t);
+uint16_t		sddc_get_firmware(libsddc_handler_t t);
+// --- //
+
+// --- RF mode --- //
+sddc_rf_mode_t sddc_get_best_rf_mode(libsddc_handler_t t);
+sddc_rf_mode_t sddc_get_rf_mode(libsddc_handler_t t);
+sddc_err_t sddc_set_rf_mode(libsddc_handler_t t, sddc_rf_mode_t rf_mode);
+// --- //
+
+// --- ADC --- //
+uint32_t	sddc_get_adc_sample_rate(libsddc_handler_t t);
+sddc_err_t	sddc_set_adc_sample_rate(libsddc_handler_t t, uint32_t samplefreq);
+// --- //
+
+// --- Bias tee --- //
+bool		sddc_get_biast_hf ();
+sddc_err_t	sddc_set_biast_hv (bool new_state);
+bool		sddc_get_biast_vhf();
+sddc_err_t	sddc_set_biast_vhf(bool new_state);
+
+// --- RF/IF adjustments --- //
+int			sddc_get_attenuation_steps(libsddc_handler_t t, const float** steps);
+sddc_err_t	sddc_set_attenuation(libsddc_handler_t t, int attIndex);
+int			sddc_get_gain_steps(libsddc_handler_t t, const float** steps);
+sddc_err_t	sddc_set_gain(libsddc_handler_t t, int attIndex);
+
+// --- Tuner --- //
+uint32_t	sddc_set_center_frequency(libsddc_handler_t t, uint32_t freq);
+
+// --- Misc --- //
+bool		sddc_get_dither();
+sddc_err_t	sddc_set_dither(libsddc_handler_t t, bool new_state);
+bool		sddc_get_pga(libsddc_handler_t t);
+sddc_err_t	sddc_set_pga(libsddc_handler_t t, bool new_state);
+bool		sddc_get_rand(libsddc_handler_t t);
+sddc_err_t	sddc_set_rand(libsddc_handler_t t, bool new_state);
+// --- //
+
+// --- LEDs --- //
+sddc_err_t	sddc_set_led(libsddc_handler_t t, sddc_leds_t led, bool on);
+// --- //
+
+// --- r2iq only --- //
+sddc_err_t sddc_set_decimation(libsddc_handler_t t, uint8_t decimate);
+// --- //
 
 #ifdef __cplusplus
 }

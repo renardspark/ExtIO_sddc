@@ -135,33 +135,34 @@ int main(int argc, char **argv)
 
   int ret_val = -1;
 
-  sddc_t *sddc = sddc_open(0);
-  if (sddc == 0) {
+  libsddc_handler_t sddc = sddc_create();
+  sddc_err_t ret = sddc_init(sddc, 0);
+  if (ret != ERR_SUCCESS) {
     fprintf(stderr, "ERROR - sddc_open() failed\n");
     return -1;
   }
 
-  if (sddc_set_sample_rate(sddc, sample_rate) < 0) {
+  if (sddc_set_adc_sample_rate(sddc, sample_rate) < 0) {
     fprintf(stderr, "ERROR - sddc_set_sample_rate() failed\n");
     goto DONE;
   }
 
-  if (sddc_set_async_params(sddc, 0, 0, count_bytes_callback, sddc) < 0) {
+  if (sddc_set_stream_callback(sddc, count_bytes_callback, sddc) < 0) {
     fprintf(stderr, "ERROR - sddc_set_async_params() failed\n");
     goto DONE;
   }
 
-  if (sddc_set_rf_mode(sddc, VHF_MODE) < 0) {
+  if (sddc_set_rf_mode(sddc, VHFMODE) < 0) {
     fprintf(stderr, "ERROR - sddc_set_rf_mode() failed\n");
     goto DONE;
   }
 
-  if (sddc_set_tuner_frequency(sddc, vhf_frequency) < 0) {
+  if (sddc_set_center_frequency(sddc, vhf_frequency) < 0) {
     fprintf(stderr, "ERROR - sddc_set_vhf_frequency() failed\n");
     goto DONE;
   }
 
-  if (sddc_set_tuner_rf_attenuation(sddc, vhf_attenuation) < 0) {
+  if (sddc_set_attenuation(sddc, vhf_attenuation) < 0) {
     fprintf(stderr, "ERROR - sddc_set_tuner_rf_attenuation() failed\n");
     goto DONE;
   }
@@ -182,8 +183,7 @@ int main(int argc, char **argv)
   /* todo: move this into a thread */
   stop_reception = 0;
   clock_gettime(CLOCK_REALTIME, &clk_start);
-  while (!stop_reception)
-    sddc_handle_events(sddc);
+  while (!stop_reception);
 
   fprintf(stderr, "finished. now stop streaming ..\n");
   if (sddc_stop_streaming(sddc) < 0) {
@@ -212,7 +212,7 @@ int main(int argc, char **argv)
   ret_val = 0;
 
 DONE:
-  sddc_close(sddc);
+  sddc_destroy(sddc);
 
   return ret_val;
 }

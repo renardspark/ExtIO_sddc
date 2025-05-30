@@ -1,380 +1,230 @@
+/*
+ * This file is part of SDDC_Driver.
+ *
+ * Copyright (C) 2020 - Howard Su
+ * Copyright (C) 2021 - Hayati Ayguen
+ * Copyright (C) 2025 - RenardSpark
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
 #include "libsddc.h"
 #include "config.h"
-#include "r2iq.h"
 #include "RadioHandler.h"
 
-struct sddc
-{
-    SDDCStatus status;
-    RadioHandlerClass* handler;
-    uint8_t led;
-    int samplerateidx;
-    double freq;
+#include <cstring>
 
-    sddc_read_async_cb_t callback;
-    void *callback_context;
+// libsddc handler
+struct libsddc_handler
+{
+	RadioHandler* radio_handler;
+
+	sddc_read_async_cb_t callback;
+	void *callback_context;
 };
 
-sddc_t *current_running;
-
+// TODO: Seriously this is important
 static void Callback(void* context, const float* data, uint32_t len)
 {
+	const libsddc_handler_t t = static_cast<libsddc_handler_t>(context);
+
+	if(t->callback)
+		t->callback(len, data, t->callback_context);
 }
 
-class rawdata : public r2iqControlClass {
-    void Init(float gain, ringbuffer<int16_t>* buffers, ringbuffer<float>* obuffers) override
-    {
-        idx = 0;
-    }
-
-    void TurnOn() override
-    {
-        this->r2iqOn = true;
-        idx = 0;
-    }
-
-private:
-    int idx;
-};
-
-int sddc_get_device_count()
+// --- "Static" functions --- //
+uint16_t sddc_get_device_count()
 {
-    return 1;
+	return RadioHandler::GetDeviceListLength();
 }
 
-int sddc_get_device_info(struct sddc_device_info **sddc_device_infos)
+sddc_err_t sddc_get_device(uint8_t dev_index, struct sddc_device_t *dev)
 {
-    auto ret = new sddc_device_info();
-    const char *todo = "TODO";
-    ret->manufacturer = todo;
-    ret->product = todo;
-    ret->serial_number = todo;
-
-    *sddc_device_infos = ret;
-
-    return 1;
+	return RadioHandler::GetDevice(dev_index, dev);
 }
+// --- //
 
-int sddc_free_device_info(struct sddc_device_info *sddc_device_infos)
+
+libsddc_handler_t sddc_create()
 {
-    delete sddc_device_infos;
-    return 0;
+	return new libsddc_handler();
 }
 
-sddc_t *sddc_open(int index)
+
+sddc_err_t sddc_init(libsddc_handler_t t, uint8_t dev_index)
 {
-    auto ret_val = new sddc_t();
+	t->radio_handler = new RadioHandler();
 
-    fx3class *fx3 = CreateUsbHandler();
-    if (fx3 == nullptr)
-    {
-        return nullptr;
-    }
+	sddc_err_t ret = t->radio_handler->Init(dev_index);
+	if(ret != ERR_SUCCESS) return ret;
 
-    bool openOK = fx3->Open();
-    if (!openOK)
-        return nullptr;
+	ret = t->radio_handler->AttachIQ(Callback, t);
+	if(ret != ERR_SUCCESS) return ret;
 
-    ret_val->handler = new RadioHandlerClass();
-
-    if (ret_val->handler->Init(fx3, Callback, new rawdata()))
-    {
-        ret_val->status = SDDC_STATUS_READY;
-        ret_val->samplerateidx = 0;
-    }
-
-    return ret_val;
+	return ERR_SUCCESS;
 }
 
-void sddc_close(sddc_t *that)
+
+
+
+void sddc_destroy(libsddc_handler_t t)
 {
-    if (that->handler)
-        delete that->handler;
-    delete that;
+	if(t->radio_handler)
+		delete t->radio_handler;
 }
 
-enum SDDCStatus sddc_get_status(sddc_t *t)
+
+RadioModel sddc_get_model(libsddc_handler_t t)
 {
-    return t->status;
+	return t->radio_handler->getHardwareModel();
 }
 
-enum SDDCHWModel sddc_get_hw_model(sddc_t *t)
+const char *sddc_get_model_name(libsddc_handler_t t)
 {
-    switch(t->handler->getModel())
-    {
-        case RadioModel::BBRF103:
-            return HW_BBRF103;
-        case RadioModel::HF103:
-            return HW_HF103;
-        case RadioModel::RX888:
-            return HW_RX888;
-        case RadioModel::RX888r2:
-            return HW_RX888R2;
-        case RadioModel::RX888r3:
-            return HW_RX888R3;
-        case RadioModel::RX999:
-            return HW_RX999;
-        default:
-            return HW_NORADIO;
-    }
+	return t->radio_handler->getHardwareName();
 }
 
-const char *sddc_get_hw_model_name(sddc_t *t)
+uint16_t sddc_get_firmware(libsddc_handler_t t)
 {
-    return t->handler->getName();
+	return t->radio_handler->GetHardwareFirmware();
 }
 
-uint16_t sddc_get_firmware(sddc_t *t)
-{
-    return t->handler->GetFirmware();
-}
+// --- RF --- //
+sddc_rf_mode_t sddc_get_rf_mode(libsddc_handler_t t) { return t->radio_handler->GetRFMode(); }
 
-const double *sddc_get_frequency_range(sddc_t *t)
-{
-    return nullptr;
-}
+sddc_err_t sddc_set_rf_mode(libsddc_handler_t t, sddc_rf_mode_t rf_mode) { return t->radio_handler->SetRFMode(rf_mode); }
+// --- //
 
-enum RFMode sddc_get_rf_mode(sddc_t *t)
-{
-    switch(t->handler->GetmodeRF())
-    {
-        case HFMODE:
-            return RFMode::HF_MODE;
-        case VHFMODE:
-            return RFMode::VHF_MODE;
-        default:
-            return RFMode::NO_RF_MODE;
-    }
-}
+// --- LEDs --- //
+sddc_err_t sddc_set_led(libsddc_handler_t t, sddc_leds_t led, bool state)
+	{ return t->radio_handler->SetLED(led, state); }
 
-int sddc_set_rf_mode(sddc_t *t, enum RFMode rf_mode)
-{
-    switch (rf_mode)
-    {
-    case VHF_MODE:
-        t->handler->UpdatemodeRF(VHFMODE);
-        break;
-    case HF_MODE:
-        t->handler->UpdatemodeRF(HFMODE);
-        break;
-    default:
-        return -1;
-    }
-
-    return 0;
-}
-
-/* LED functions */
-int sddc_led_on(sddc_t *t, uint8_t led_pattern)
-{
-    if (led_pattern & YELLOW_LED)
-        t->handler->uptLed(0, true);
-    if (led_pattern & RED_LED)
-        t->handler->uptLed(1, true);
-    if (led_pattern & BLUE_LED)
-        t->handler->uptLed(2, true);
-
-    t->led |= led_pattern;
-
-    return 0;
-}
-
-int sddc_led_off(sddc_t *t, uint8_t led_pattern)
-{
-    if (led_pattern & YELLOW_LED)
-        t->handler->uptLed(0, false);
-    if (led_pattern & RED_LED)
-        t->handler->uptLed(1, false);
-    if (led_pattern & BLUE_LED)
-        t->handler->uptLed(2, false);
-
-    t->led &= ~led_pattern;
-
-    return 0;
-}
-
-int sddc_led_toggle(sddc_t *t, uint8_t led_pattern)
-{
-    t->led = t->led ^ led_pattern;
-    if (t->led & YELLOW_LED)
-        t->handler->uptLed(0, false);
-    if (t->led & RED_LED)
-        t->handler->uptLed(1, false);
-    if (t->led & BLUE_LED)
-        t->handler->uptLed(2, false);
-
-    return 0;
-}
 
 
 /* ADC functions */
-int sddc_get_adc_dither(sddc_t *t)
+bool sddc_get_dither(libsddc_handler_t t)
 {
-    return t->handler->GetDither();
+	return t->radio_handler->GetDither();
 }
 
-int sddc_set_adc_dither(sddc_t *t, int dither)
+sddc_err_t sddc_set_dither(libsddc_handler_t t, bool dither)
 {
-    t->handler->UptDither(dither != 0);
-    return 0;
+	return t->radio_handler->SetDither(dither);
 }
 
-int sddc_get_adc_random(sddc_t *t)
+bool sddc_get_pga(libsddc_handler_t t)
 {
-    return t->handler->GetRand();
+	return t->radio_handler->GetPGA();
 }
 
-int sddc_set_adc_random(sddc_t *t, int random)
+sddc_err_t sddc_set_pga(libsddc_handler_t t, bool pga)
 {
-    t->handler->UptRand(random != 0);
-    return 0;
+	return t->radio_handler->SetPGA(pga);
 }
 
-/* HF block functions */
-double sddc_get_hf_attenuation(sddc_t *t)
+bool sddc_get_random(libsddc_handler_t t)
 {
-    return 0;
+	return t->radio_handler->GetRand();
 }
 
-int sddc_set_hf_attenuation(sddc_t *t, double attenuation)
+sddc_err_t sddc_set_random(libsddc_handler_t t, bool random)
 {
-    return 0;
+	return t->radio_handler->SetRand(random);
 }
 
-int sddc_get_hf_bias(sddc_t *t)
+bool sddc_get_biast_hf(libsddc_handler_t t)
 {
-    return t->handler->GetBiasT_HF();
+	return t->radio_handler->GetBiasT_HF();
+}
+sddc_err_t sddc_set_biast_hf(libsddc_handler_t t, bool new_state)
+{
+	return t->radio_handler->SetBiasT_HF(new_state);
 }
 
-int sddc_set_hf_bias(sddc_t *t, int bias)
+bool sddc_get_biast_vhf(libsddc_handler_t t)
 {
-    t->handler->UpdBiasT_HF(bias != 0);
-    return 0;
+	return t->radio_handler->GetBiasT_VHF();
+}
+
+sddc_err_t sddc_set_biast_vhf(libsddc_handler_t t, bool new_state)
+{
+	return t->radio_handler->SetBiasT_VHF(new_state);
+}
+
+uint32_t sddc_set_center_frequency (libsddc_handler_t t, uint32_t freq)
+{
+	return t->radio_handler->SetCenterFrequency(freq);
 }
 
 
-/* VHF block and VHF/UHF tuner functions */
-double sddc_get_tuner_frequency(sddc_t *t)
+uint32_t sddc_get_adc_sample_rate(libsddc_handler_t t)
 {
-    return t->freq;
+	return t->radio_handler->GetADCSampleRate();
+}
+sddc_err_t sddc_set_adc_sample_rate(libsddc_handler_t t, uint32_t sample_rate)
+{
+	return t->radio_handler->SetADCSampleRate(sample_rate);
 }
 
-int sddc_set_tuner_frequency(sddc_t *t, double frequency)
+sddc_err_t sddc_set_stream_callback(libsddc_handler_t t, sddc_read_async_cb_t callback,
+						  void *callback_context)
 {
-    t->freq = t->handler->TuneLO((uint64_t)frequency);
-
-    return 0;
+	t->callback = callback;
+	t->callback_context = callback_context;
+	return ERR_SUCCESS;
 }
 
-int sddc_get_tuner_rf_attenuations(sddc_t *t, const double *attenuations[])
+sddc_err_t sddc_start_streaming(libsddc_handler_t t)
 {
-    return 0;
+	return t->radio_handler->Start(/*convert_r2iq=*/true);
 }
 
-double sddc_get_tuner_rf_attenuation(sddc_t *t)
+sddc_err_t sddc_stop_streaming(libsddc_handler_t t)
 {
-    return 0;
+	return t->radio_handler->Stop();
 }
 
-int sddc_set_tuner_rf_attenuation(sddc_t *t, double attenuation)
+sddc_err_t sddc_set_decimation(libsddc_handler_t t, uint8_t decimate)
 {
-    //TODO, convert double to index
-    t->handler->UpdateattRF(5);
-    return 0;
+	return t->radio_handler->SetDecimation(decimate);
 }
 
-int sddc_get_tuner_if_attenuations(sddc_t *t, const double *attenuations[])
+
+int sddc_get_attenuation_steps(libsddc_handler_t t, const float** s)
 {
-    // TODO
-    return 0;
+	vector<float> steps = t->radio_handler->GetAttenuationSteps();
+
+	*s = (const float*)malloc(steps.size() * sizeof(float));
+	memcpy(s, steps.data(), steps.size() * sizeof(float));
+
+	return steps.size();
+}
+sddc_err_t sddc_set_attenuation(libsddc_handler_t t, int attIndex)
+{
+	return t->radio_handler->SetAttenuation(attIndex);
 }
 
-double sddc_get_tuner_if_attenuation(sddc_t *t)
+int sddc_get_gain_steps(libsddc_handler_t t, const float** s)
 {
-    return 0;
-}
+	vector<float> steps = t->radio_handler->GetGainSteps();
 
-int sddc_set_tuner_if_attenuation(sddc_t *t, double attenuation)
-{
-    return 0;
-}
+	*s = (const float*)malloc(steps.size() * sizeof(float));
+	memcpy(s, steps.data(), steps.size() * sizeof(float));
 
-int sddc_get_vhf_bias(sddc_t *t)
-{
-    return t->handler->GetBiasT_VHF();
+	return steps.size();
 }
-
-int sddc_set_vhf_bias(sddc_t *t, int bias)
+sddc_err_t sddc_set_gain(libsddc_handler_t t, int attIndex)
 {
-    t->handler->UpdBiasT_VHF(bias != 0);
-    return 0;
-}
-
-double sddc_get_sample_rate(sddc_t *t)
-{
-    return 0;
-}
-
-int sddc_set_sample_rate(sddc_t *t, double sample_rate)
-{
-    switch((int64_t)sample_rate)
-    {
-        case 32000000:
-            t->samplerateidx = 0;
-            break;
-        case 16000000:
-            t->samplerateidx = 1;
-            break;
-        case 8000000:
-            t->samplerateidx = 2;
-            break;
-        case 4000000:
-            t->samplerateidx = 3;
-            break;
-        case 2000000:
-            t->samplerateidx = 4;
-            break;
-        default:
-            return -1;
-    }
-    return 0;
-}
-
-int sddc_set_async_params(sddc_t *t, uint32_t frame_size, 
-                          uint32_t num_frames, sddc_read_async_cb_t callback,
-                          void *callback_context)
-{
-    // TODO: ignore frame_size, num_frames
-    t->callback = callback;
-    t->callback_context = callback_context;
-    return 0;
-}
-
-int sddc_start_streaming(sddc_t *t)
-{
-    current_running = t;
-    t->handler->Start(t->samplerateidx);
-    return 0;
-}
-
-int sddc_handle_events(sddc_t *t)
-{
-    return 0;
-}
-
-int sddc_stop_streaming(sddc_t *t)
-{
-    t->handler->Stop();
-    current_running = nullptr;
-    return 0;
-}
-
-int sddc_reset_status(sddc_t *t)
-{
-    return 0;
-}
-
-int sddc_read_sync(sddc_t *t, uint8_t *data, int length, int *transferred)
-{
-    return 0;
+	return t->radio_handler->SetGain(attIndex);
 }

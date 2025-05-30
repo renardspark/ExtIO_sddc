@@ -30,12 +30,12 @@
 #include <unistd.h>
 #endif
 
-static void blink_led(sddc_t *sddc, uint8_t color);
+static void blink_led(libsddc_handler_t sddc, uint8_t color);
 
 
 int main(int argc, char **argv)
 {
-  if (argc != 2) {
+  if (argc != 1) {
     fprintf(stderr, "usage: %s\n", argv[0]);
     return -1;
   }
@@ -49,51 +49,50 @@ int main(int argc, char **argv)
   printf("device count=%d\n", count);
 
   /* get device info */
-  struct sddc_device_info *sddc_device_infos;
-  count = sddc_get_device_info(&sddc_device_infos);
-  if (count < 0) {
-    fprintf(stderr, "ERROR - sddc_get_device_info() failed\n");
-    return -1;
+  struct sddc_device_t sddc_device_infos;
+  for(int i = 0; i < count; ++i)
+  {
+    sddc_get_device(i, &sddc_device_infos);
+    printf("%d - product=\"%s\" serial number=\"%s\"\n",
+          i,
+          sddc_device_infos.product,
+          sddc_device_infos.serial_number);
   }
-  for (int i = 0; i < count; ++i) {
-    printf("%d - manufacturer=\"%s\" product=\"%s\" serial number=\"%s\"\n",
-           i, sddc_device_infos[i].manufacturer, sddc_device_infos[i].product,
-           sddc_device_infos[i].serial_number);
-  }
-  sddc_free_device_info(sddc_device_infos);
 
   /* open and close device */
-  sddc_t *sddc = sddc_open(0);
-  if (sddc == 0) {
+  libsddc_handler_t sddc = sddc_create();
+  sddc_err_t ret = sddc_init(sddc, 0);
+
+  if (ret != ERR_SUCCESS) {
     fprintf(stderr, "ERROR - sddc_open() failed\n");
     return -1;
   }
 
   /* blink the LEDs */
   printf("blinking the red LED\n");
-  blink_led(sddc, RED_LED);
+  blink_led(sddc, SDDC_LED_RED);
   printf("blinking the yellow LED\n");
-  blink_led(sddc, YELLOW_LED);
+  blink_led(sddc, SDDC_LED_YELLOW);
   printf("blinking the blue LED\n");
-  blink_led(sddc, BLUE_LED);
+  blink_led(sddc, SDDC_LED_BLUE);
 
   /* done */
-  sddc_close(sddc);
+  sddc_destroy(sddc);
 
   return 0;
 }
 
-static void blink_led(sddc_t *sddc, uint8_t color)
+static void blink_led(libsddc_handler_t sddc, uint8_t color)
 {
   for (int i = 0; i < 5; ++i) {
-    int ret = sddc_led_on(sddc, color);
-    if (ret < 0) {
+    sddc_err_t ret = sddc_set_led(sddc, color, true);
+    if (ret != ERR_SUCCESS) {
       fprintf(stderr, "ERROR - sddc_led_on(%02x) failed\n", color);
       return;
     }
     sleep(1);
-    ret = sddc_led_off(sddc, color);
-    if (ret < 0) {
+    ret = sddc_set_led(sddc, color, false);
+    if (ret != ERR_SUCCESS) {
       fprintf(stderr, "ERROR - sddc_led_off(%02x) failed\n", color);
       return;
     }

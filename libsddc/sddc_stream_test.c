@@ -112,17 +112,17 @@ static double clk_diff() {
 
 int main(int argc, char **argv)
 {
-  if (argc < 3) {
+  if (argc < 2) {
     fprintf(stderr, "usage: %s <sample rate> [<runtime_in_ms> [<output_filename>]\n", argv[0]);
     return -1;
   }
   const char *outfilename = 0;
   double sample_rate = 0.0;
-  sscanf(argv[2], "%lf", &sample_rate);
+  sscanf(argv[1], "%lf", &sample_rate);
+  if (2 < argc)
+    runtime = atoi(argv[2]);
   if (3 < argc)
-    runtime = atoi(argv[3]);
-  if (4 < argc)
-    outfilename = argv[4];
+    outfilename = argv[3];
 
   if (sample_rate <= 0) {
     fprintf(stderr, "ERROR - given samplerate '%f' should be > 0\n", sample_rate);
@@ -131,25 +131,31 @@ int main(int argc, char **argv)
 
   int ret_val = -1;
 
-  sddc_t *sddc = sddc_open(0);
-  if (sddc == 0) {
-    fprintf(stderr, "ERROR - sddc_open() failed\n");
+  libsddc_handler_t sddc = sddc_create();
+  sddc_err_t ret = sddc_init(sddc, 0);
+  if(ret != ERR_SUCCESS) {
+    fprintf(stderr, "ERROR - sddc_open() failed : %lld\n", ret);
     return -1;
   }
 
-  if (sddc_set_sample_rate(sddc, sample_rate) < 0) {
+  if (sddc_set_decimation(sddc, 0) != ERR_SUCCESS) {
     fprintf(stderr, "ERROR - sddc_set_sample_rate() failed\n");
     goto DONE;
   }
 
-  if (sddc_set_async_params(sddc, 0, 0, count_bytes_callback, sddc) < 0) {
+  if (sddc_set_adc_sample_rate(sddc, sample_rate) != ERR_SUCCESS) {
+    fprintf(stderr, "ERROR - sddc_set_sample_rate() failed\n");
+    goto DONE;
+  }
+
+  if (sddc_set_stream_callback(sddc, count_bytes_callback, sddc) != ERR_SUCCESS) {
     fprintf(stderr, "ERROR - sddc_set_async_params() failed\n");
     goto DONE;
   }
 
   received_samples = 0;
   num_callbacks = 0;
-  if (sddc_start_streaming(sddc) < 0) {
+  if (sddc_start_streaming(sddc) != ERR_SUCCESS) {
     fprintf(stderr, "ERROR - sddc_start_streaming() failed\n");
     return -1;
   }
@@ -163,8 +169,7 @@ int main(int argc, char **argv)
   /* todo: move this into a thread */
   stop_reception = 0;
   clock_gettime(CLOCK_REALTIME, &clk_start);
-  while (!stop_reception)
-    sddc_handle_events(sddc);
+  while (!stop_reception) sleep(1);
 
   fprintf(stderr, "finished. now stop streaming ..\n");
   if (sddc_stop_streaming(sddc) < 0) {
@@ -193,7 +198,7 @@ int main(int argc, char **argv)
   ret_val = 0;
 
 DONE:
-  sddc_close(sddc);
+  sddc_destroy(sddc);
 
   return ret_val;
 }
