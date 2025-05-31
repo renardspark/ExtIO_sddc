@@ -366,21 +366,6 @@ SoapySDR::RangeList SoapySDDC::getSampleRateRange(const int direction, const siz
 }
 
 
-SoapySDR::ArgInfoList SoapySDDC::getSettingInfo()
-{
-    TracePrintf("SoapySDDC::getSettingInfo()\n");
-    SoapySDR::ArgInfoList list;
-    SoapySDR::ArgInfo arg;
-
-    arg.key = "rfmode";
-    arg.value = "X";
-    arg.name = "RF mode";
-    arg.type = SoapySDR::ArgInfo::Type::STRING;
-    list.push_back(arg);
-
-    return list;
-}
-
 vector<string> SoapySDDC::listSensors()
 {
     return vector<string>{
@@ -397,41 +382,85 @@ string SoapySDDC::readSensor(const string key)
     return "";
 }
 
+
 SoapySDR::ArgInfoList SoapySDDC::getSettingInfo(void) const
 {
+    TRACE("");
+
     SoapySDR::ArgInfoList setArgs;
 
     SoapySDR::ArgInfo BiasTHFArg;
-    BiasTHFArg.key = "UpdBiasT_HF";
+    BiasTHFArg.key = "SetBiasT_HF";
     BiasTHFArg.value = "false";
-    BiasTHFArg.name = "HF Bias Tee enable";
+    BiasTHFArg.name = "HF Bias Tee";
     BiasTHFArg.description = "Enabe Bias Tee on HF antenna port";
     BiasTHFArg.type = SoapySDR::ArgInfo::BOOL;
     setArgs.push_back(BiasTHFArg);
 
     SoapySDR::ArgInfo BiasTVHFArg;
-    BiasTVHFArg.key = "UpdBiasT_VHF";
+    BiasTVHFArg.key = "SetBiasT_VHF";
     BiasTVHFArg.value = "false";
-    BiasTVHFArg.name = "VHF Bias Tee enable";
+    BiasTVHFArg.name = "VHF Bias Tee";
     BiasTVHFArg.description = "Enabe Bias Tee on VHF antenna port";
     BiasTVHFArg.type = SoapySDR::ArgInfo::BOOL;
     setArgs.push_back(BiasTVHFArg);
+
+    SoapySDR::ArgInfo dither;
+    dither.key = "SetDither";
+    dither.value = "false";
+    dither.name = "Dither";
+    dither.description = "Enable dither";
+    dither.type = SoapySDR::ArgInfo::BOOL;
+    setArgs.push_back(dither);
+
+    SoapySDR::ArgInfo pga;
+    pga.key = "SetPGA";
+    pga.value = "false";
+    pga.name = "PGA";
+    pga.description = "Enable Programmable Gain Amplifier";
+    pga.type = SoapySDR::ArgInfo::BOOL;
+    setArgs.push_back(pga);
+
+    SoapySDR::ArgInfo rand;
+    rand.key = "SetRand";
+    rand.value = "false";
+    rand.name = "ADC random";
+    rand.description = "Enable ADC random generation";
+    rand.type = SoapySDR::ArgInfo::BOOL;
+    setArgs.push_back(rand);
 
     return setArgs;
 }
 
 void SoapySDDC::writeSetting(const std::string &key, const std::string &value)
 {
-    bool biasTee;
-    if (key == "UpdBiasT_HF")
+    if(key == "SetBiasT_HF")
     {
-        biasTee = (value == "true") ? true: false;
+        bool biasTee = (value == "true") ? true : false;
         radio_handler->SetBiasT_HF(biasTee);
     }
-    else if (key == "UpdBiasT_VHF")
+    else if(key == "SetBiasT_VHF")
     {
-        biasTee = (value == "true") ? true: false;
+        bool biasTee = (value == "true") ? true : false;
         radio_handler->SetBiasT_VHF(biasTee);
+    }
+
+    else if(key == "SetDither")
+    {
+        bool dither = (value == "true") ? true : false;
+        radio_handler->SetDither(dither);
+    }
+
+    else if(key == "SetPGA")
+    {
+        bool pga = (value == "true") ? true : false;
+        radio_handler->SetPGA(pga);
+    }
+
+    else if(key == "SetRand")
+    {
+        bool rand = (value == "true") ? true : false;
+        radio_handler->SetRand(rand);
     }
 }
 

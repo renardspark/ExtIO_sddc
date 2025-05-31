@@ -63,8 +63,10 @@
 #endif
 
 #ifdef VERBOSE_TRACE
+	#define TRACE(fmt, ...) printf("[SDDC] TRACE - %s:%d - %s(" fmt ")\n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);
 	#define TracePrintf(fmt, ...) printf("[SDDC] TRACE - " fmt, ##__VA_ARGS__)
 #else
+	#define TRACE(fmt, ...)
 	#define TracePrintf(fmt, ...) do {} while(0)
 #endif
 
