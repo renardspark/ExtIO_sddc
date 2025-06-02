@@ -89,8 +89,8 @@ void fx3handler::StartStream(ringbuffer<int16_t> &samples_buf)
 
     inputbuffer = &samples_buf;
 
-    stream = streaming_open_async(this->dev, transferSize, concurrentTransfers, PacketRead, this);
-    samples_buf.setBlockSize(streaming_framesize(stream) / sizeof(int16_t));
+    stream = streaming_open_async(this->dev, inputbuffer->getBlockSize() * sizeof(int16_t), concurrentTransfers, PacketRead, this);
+    //samples_buf.setBlockSize(streaming_framesize(stream) / sizeof(int16_t));
 
     DebugPrintf(TAG, "Samples buffer blocksize: %d\n", samples_buf.getBlockSize());
 

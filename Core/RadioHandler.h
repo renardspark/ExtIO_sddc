@@ -56,7 +56,7 @@ public:
 	~RadioHandler();
 	sddc_err_t Init(uint8_t dev_index);
 	sddc_err_t AttachReal(void (*callback)(void* context, const int16_t*, uint32_t), void* context = nullptr);
-	sddc_err_t AttachIQ(void (*callback)(void* context, const float*, uint32_t), void* context = nullptr);
+	sddc_err_t AttachIQ(void (*callback)(void* context, const sddc_complex_t*, uint32_t), void* context = nullptr);
 	sddc_err_t Start(bool convert_r2iq);
 	sddc_err_t Stop();
 
@@ -134,7 +134,7 @@ private:
 
 	void (*callbackReal)(void* context, const int16_t *data, uint32_t length);
 	void *callbackRealContext;
-	void (*callbackIQ)(void* context, const float *data, uint32_t length);
+	void (*callbackIQ)(void* context, const sddc_complex_t *data, uint32_t length);
 	void *callbackIQContext;
 
 	void (*DbgPrintFX3)(const char* fmt, ...);
@@ -148,7 +148,7 @@ private:
 
 	// transfer variables
 	ringbuffer<int16_t> real_buffer;
-	ringbuffer<float> iq_buffer;
+	ringbuffer<sddc_complex_t> iq_buffer;
 
 	// threads
 	std::thread show_stats_thread;
@@ -164,7 +164,7 @@ private:
 	std::mutex fc_mutex;
     float fc;
 	shift_limited_unroll_C_sse_data_t* stateFineTune;
-	r2iqControlClass* r2iqCntrl;
+	fft_mt_r2iq* r2iqCntrl;
 	bool r2iqEnabled = false;
 };
 

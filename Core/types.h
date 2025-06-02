@@ -54,4 +54,6 @@ typedef struct sddc_device_t {
 	char serial_number[32];
 } sddc_device_t;
 
+typedef float sddc_complex_t[2];
+
 #endif // _H_TYPES

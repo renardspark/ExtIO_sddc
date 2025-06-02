@@ -1,4 +1,4 @@
-#include "r2iq.h"
+#include "fft_mt_r2iq.h"
 #include "FX3Class.h"
 #include "CppUnitTestFramework.hpp"
 #include <thread>
@@ -99,7 +99,7 @@ public:
 static uint32_t frame_count;
 static uint64_t totalsize;
 
-static void Callback(void* context, const float* data, uint32_t len)
+static void Callback(void* context, const sddc_complex_t* data, uint32_t len)
 {
     frame_count++;
     totalsize += len;

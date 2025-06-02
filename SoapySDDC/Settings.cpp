@@ -6,24 +6,28 @@
 #include <cstring>
 
 #define TAG "SoapySDDC_Settings"
+
+static void _Callback(void *context, const sddc_complex_t *data, uint32_t len)
 {
     SoapySDDC *sddc = (SoapySDDC *)context;
     sddc->Callback(data, len);
 }
 
-int SoapySDDC::Callback(const float *data, uint32_t len)
+void SoapySDDC::Callback(const sddc_complex_t *data, uint32_t len)
 {
     TraceExtremePrintln(TAG, "%p, %d", data, len);
     if (_buf_count == numBuffers)
     {
         _overflowEvent = true;
-        return 0;
+        return;
     }
 
-    auto &buff = _buffs[_buf_tail];
-    buff.resize(len * bytesPerSample);
-    memcpy(buff.data(), data, len * bytesPerSample);
-    _buf_tail = (_buf_tail + 1) % numBuffers;
+    auto &buff = samples_buffer[samples_block_write];
+    buff.resize(len * sizeof(sddc_complex_t));
+    memcpy(buff.data(), data, len * sizeof(sddc_complex_t));
+
+    samples_block_write++;
+    samples_block_write %= numBuffers;
 
     {
         std::lock_guard<std::mutex> lock(_buf_mutex);

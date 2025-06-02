@@ -34,8 +34,7 @@ struct libsddc_handler
 	void *callback_context;
 };
 
-// TODO: Seriously this is important
-static void Callback(void* context, const float* data, uint32_t len)
+static void Callback(void* context, const sddc_complex_t* data, uint32_t len)
 {
 	const libsddc_handler_t t = static_cast<libsddc_handler_t>(context);
 

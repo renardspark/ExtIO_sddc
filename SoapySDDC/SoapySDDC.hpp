@@ -136,14 +136,14 @@ private:
     RadioHandler *radio_handler;
 
 public:
-    int Callback(const float *data, uint32_t len);
+    void Callback(const sddc_complex_t *data, uint32_t len);
 
     std::mutex _buf_mutex;
     std::condition_variable _buf_cond;
 
-    std::vector<std::vector<char>> _buffs;
-    size_t _buf_head;
-    size_t _buf_tail;
+    std::vector<std::vector<uint8_t>> samples_buffer;
+    size_t samples_block_write;
+    size_t samples_block_read;
     std::atomic<size_t> _buf_count;
     char *_currentBuff;
     std::atomic<bool> _overflowEvent;

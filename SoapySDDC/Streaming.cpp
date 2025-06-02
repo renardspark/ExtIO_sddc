@@ -53,19 +53,20 @@ SoapySDR::Stream *SoapySDDC::setupStream(const int direction,
         throw std::runtime_error("setupStream failed: SDDC only supports CF32.");
     }
 
-    bytesPerSample = 8;
+    bytesPerSample = sizeof(sddc_complex_t);
+    //bufferLength = 262144 / bytesPerSample;
+    bufferLength = transferSamples / 2;
+    DebugPrintln(TAG, "Expect input buffer of size %ld (%ld bytes)", bufferLength, bufferLength * bytesPerSample);
 
-    bufferLength = 262144 / bytesPerSample;
-
-    _buf_tail = 0;
-    _buf_head = 0;
+    samples_block_write = 0;
+    samples_block_read  = 0;
     _buf_count = 0;
 
     // allocate buffers
-    _buffs.resize(numBuffers);
-    for (auto &buff : _buffs)
+    samples_buffer.resize(numBuffers);
+    for (auto &buff : samples_buffer)
         buff.reserve(bufferLength * bytesPerSample);
-    for (auto &buff : _buffs)
+    for (auto &buff : samples_buffer)
         buff.resize(bufferLength * bytesPerSample);
 
     // std::this_thread::sleep_for(std::chrono::milliseconds(1000));
@@ -115,6 +116,7 @@ int SoapySDDC::readStream(SoapySDR::Stream *stream,
 {
     TraceExtremePrintln(TAG, "%p, %p, %ld, %d, %lld, %ld", stream, buffs, numElems, flags, timeNs, timeoutUs);
 
+    void *buffer_channel0 = buffs[0];
     if (bufferedElems == 0)
     {
         int ret = this->acquireReadBuffer(stream, _currentHandle, (const void **)&_currentBuff, flags, timeNs, timeoutUs);
@@ -126,7 +128,7 @@ int SoapySDDC::readStream(SoapySDR::Stream *stream,
     size_t returnedElems = std::min(bufferedElems, numElems);
 
     // convert into user's buff0
-    std::memcpy(buff0, _currentBuff, returnedElems * bytesPerSample);
+    std::memcpy(buffer_channel0, _currentBuff, returnedElems * bytesPerSample);
 
     // bump variables for next call into readStream
     bufferedElems -= returnedElems;
@@ -151,14 +153,14 @@ int SoapySDDC::acquireReadBuffer(SoapySDR::Stream *stream,
 
     if (resetBuffer)
     {
-        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
+        samples_block_read = (samples_block_read + _buf_count.exchange(0)) % numBuffers;
         resetBuffer = false;
         _overflowEvent = false;
     }
 
     if (_overflowEvent)
     {
-        _buf_head = (_buf_head + _buf_count.exchange(0)) % numBuffers;
+        samples_block_read = (samples_block_read + _buf_count.exchange(0)) % numBuffers;
         _overflowEvent = false;
         SoapySDR::log(SOAPY_SDR_SSI, "O");
         return SOAPY_SDR_OVERFLOW;
@@ -173,13 +175,15 @@ int SoapySDDC::acquireReadBuffer(SoapySDR::Stream *stream,
             return SOAPY_SDR_TIMEOUT;
     }
     // extract handle and buffer
-    handle = _buf_head;
-    _buf_head = (_buf_head + 1) % numBuffers;
-    buffs[0] = (void *)_buffs[handle].data();
+    handle = samples_block_read;
+    samples_block_read++;
+    samples_block_read %= numBuffers;
+
+    buffs[0] = (void *)samples_buffer[handle].data();
     flags = 0;
 
     // return number available
-    return _buffs[handle].size() / bytesPerSample;
+    return samples_buffer[handle].size() / bytesPerSample;
 }
 
 void SoapySDDC::releaseReadBuffer(SoapySDR::Stream *stream,

@@ -42,8 +42,8 @@ unsigned long Failures = 0;
 
 void RadioHandler::OnDataPacket()
 {
-	auto len_real = real_buffer.getBlockSize() / sizeof(int16_t);
-	auto len_iq   = iq_buffer.getBlockSize() / sizeof(float);
+	auto len_real = real_buffer.getBlockSize();
+	auto len_iq   = iq_buffer.getBlockSize();
 
 	//ringbuffer<>* source_buffer = r2iqEnabled ? &outputbuffer : &inputbuffer;
 
@@ -189,7 +189,7 @@ sddc_err_t RadioHandler::AttachReal(void (*callback)(void*context, const int16_t
 	return ERR_SUCCESS;
 }
 
-sddc_err_t RadioHandler::AttachIQ(void (*callback)(void*context, const float*, uint32_t), void *context)
+sddc_err_t RadioHandler::AttachIQ(void (*callback)(void*context, const sddc_complex_t*, uint32_t), void *context)
 {
 	this->callbackIQ = callback;
 	this->callbackIQContext = context;
