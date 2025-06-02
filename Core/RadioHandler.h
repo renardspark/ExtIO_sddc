@@ -31,6 +31,7 @@
 #include <stdint.h>
 #include "FX3Class.h"
 #include "radio/RadioHardware.h"
+#include "fft_mt_r2iq.h"
 
 #include "dsp/ringbuffer.h"
 

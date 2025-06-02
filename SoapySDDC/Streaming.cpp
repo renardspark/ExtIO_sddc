@@ -43,7 +43,9 @@ SoapySDR::Stream *SoapySDDC::setupStream(const int direction,
 
     if (direction != SOAPY_SDR_RX)
         throw std::runtime_error("setupStream failed: SDDC only supports RX");
-    if (channels.size() != 1) throw std::runtime_error("setupStream failed: SDDC only supports one channel");
+    if (channels.size() != 1)
+        throw std::runtime_error("setupStream failed: SDDC only supports one channel");
+    
     if (format == SOAPY_SDR_CF32)
     {
         SoapySDR_logf(SOAPY_SDR_INFO, "Using format CF32.");

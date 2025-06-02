@@ -40,7 +40,6 @@ private:
 
 	static void PacketRead(uint32_t data_size, uint8_t *data, void *context);
 
-	uint32_t devidx;
 	struct usb_device_info *usb_device_infos;
 	usb_device_t *dev;
 	streaming_t *stream;

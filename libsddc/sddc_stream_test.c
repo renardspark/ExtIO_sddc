@@ -134,7 +134,7 @@ int main(int argc, char **argv)
   libsddc_handler_t sddc = sddc_create();
   sddc_err_t ret = sddc_init(sddc, 0);
   if(ret != ERR_SUCCESS) {
-    fprintf(stderr, "ERROR - sddc_open() failed : %lld\n", ret);
+    fprintf(stderr, "ERROR - sddc_open() failed : %d\n", ret);
     return -1;
   }
 

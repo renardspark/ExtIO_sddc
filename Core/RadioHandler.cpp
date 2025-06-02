@@ -20,25 +20,24 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "RadioHandler.h"
+
 
 #include <stdio.h>
 #include <string.h>
 #include <inttypes.h>
-#include "pffft/pf_mixer.h"
-#include "config.h"
-#include "fft_mt_r2iq.h"
-#include "config.h"
-#include "PScope_uti.h"
-#include "../Interface.h"
-
 #include <chrono>
+
+#include "RadioHandler.h"
+#include "config.h"
+#include "../Interface.h"
+#include "fft_mt_r2iq.h"
+#include "PScope_uti.h"
+#include "pffft/pf_mixer.h"
 
 using namespace std;
 
 #define TAG "RadioHandler"
 
-unsigned long Failures = 0;
 
 void RadioHandler::OnDataPacket()
 {

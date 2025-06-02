@@ -35,7 +35,7 @@ void SoapySDDC::Callback(const sddc_complex_t *data, uint32_t len)
     }
     _buf_cond.notify_one();
 
-    return 0;
+    return;
 }
 
 SoapySDDC::SoapySDDC(uint8_t dev_index): deviceId(-1),
@@ -146,9 +146,6 @@ void SoapySDDC::setAntenna(const int direction, const size_t, const std::string 
         radio_handler->SetRFMode(VHFMODE);
         return;
     }
-    
-    radio_handler->SetBiasT_HF(false);
-    radio_handler->SetBiasT_VHF(false);
 }
 
 // get the selected antenna
@@ -381,6 +378,7 @@ vector<string> SoapySDDC::listSensors()
 string SoapySDDC::readSensor(const string key)
 {
     TracePrintln(TAG, "%s", key.c_str());
+
     if(key == "RF mode")
     {
         return radio_handler->GetRFMode() == VHFMODE ? "VHF" : "HF";
