@@ -100,8 +100,11 @@ public:
     SoapySDR::ArgInfoList getSettingInfo();
 
     // ----- Sensors ----- //
-    vector<string> listSensors();
-    string readSensor(const string key);
+    vector<string> listSensors() const override;
+
+    SoapySDR::ArgInfo getSensorInfo(const string &key) const override;
+
+    string readSensor(const string &key) const override;
     // ----- //
 
     

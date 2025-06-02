@@ -367,15 +367,34 @@ SoapySDR::RangeList SoapySDDC::getSampleRateRange(const int direction, const siz
 }
 
 
-vector<string> SoapySDDC::listSensors()
+vector<string> SoapySDDC::listSensors() const 
 {
     TracePrintln(TAG, "");
+
     return vector<string>{
-        "RF mode"
+        "RFMode"
     };
 }
 
-string SoapySDDC::readSensor(const string key)
+SoapySDR::ArgInfo SoapySDDC::getSensorInfo(const string &key) const
+{
+    TracePrintln(TAG, "%s", key.c_str());
+
+    if(key == "RFMode")
+    {
+        SoapySDR::ArgInfo arg;
+        arg.key = "RFMode";
+        arg.value = readSensor(key);
+        arg.name = "RF Mode";
+        arg.description = "Current RF mode";
+        arg.type = SoapySDR::ArgInfo::STRING;
+        return arg;
+    }
+
+    return SoapySDR::ArgInfo();
+}
+
+string SoapySDDC::readSensor(const string &key) const
 {
     TracePrintln(TAG, "%s", key.c_str());
 
