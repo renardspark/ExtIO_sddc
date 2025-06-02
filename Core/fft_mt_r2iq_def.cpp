@@ -5,27 +5,27 @@
 
 void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
 {
-    const int decimate = this->mdecimation;
-    const int mfft = this->mfftdim[decimate];   // = halfFft / 2^mdecimation
-    const fftwf_complex* filter = filterHw[decimate];
-    const bool lsb = this->getSideband();
-    const auto filter2 = &filter[halfFft - mfft / 2];
+    const int dec_ratio = decimation_ratio[decimation];
+    const int fft_size = this->fft_size_per_decimation[decimation];
+    const int fft_half_size = fft_size / 2;
 
-    plan_f2t_c2c = &plans_f2t_c2c[decimate];
+    const fftwf_complex* filter = filterHw[decimation];
+    const bool lsb = this->getSideband();
+    const auto filter2 = &filter[BASE_FFT_HALF_SIZE - fft_half_size];
+
+    plan_freq2time = &plan_freq2time_per_decimation[decimation];
     fftwf_complex* pout = nullptr;
     int decimate_count = 0;
 
     while(r2iqOn)
     {
-        // Size of a single input block in the ringbuffer
-        size_t input_block_size;
         // Pointer to the current input block
         const int16_t *input_current_block;  
         // Pointer to the end of the previous input block minus halfFft
-        // (input_previous_block + input_block_size - halfFft)
-        const int16_t *endloop;
+        // (input_previous_block + inputbuffer_block_size - halfFft)
+        const int16_t *last_buffer_end;
 
-        const int _mtunebin = this->mtunebin;  // Update LO tune is possible during run
+        const int _center_frequency_bin = this->center_frequency_bin;  // Update LO tune is possible during run
 
         {
             std::unique_lock<std::mutex> lk(mutexR2iqControl);
@@ -36,15 +36,12 @@ void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
 
             this->bufIdx = (this->bufIdx + 1) % QUEUE_SIZE;
 
-            input_block_size = inputbuffer->getBlockSize();
             const int16_t *input_last_block = inputbuffer->peekReadPtr(-1);
-            endloop = input_last_block + input_block_size - halfFft;
+            last_buffer_end = input_last_block + inputbuffer_block_size - (BASE_FFT_SIZE * fft_scrap_proportion);
         }
 
-        auto inloop = th->ADCinTime;
-
         // @todo: move the following int16_t conversion to (32-bit) float
-        // directly inside the following loop (for "k < fftPerBuf")
+        // directly inside the following loop (for "k < ffts_per_blocks")
         //   just before the forward fft "fftwf_execute_dft_r2c" is called
         // idea: this should improve cache/memory locality
 #if PRINT_INPUT_RANGE
@@ -52,18 +49,34 @@ void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
 #endif
         if (!this->getRand())        // plain samples no ADC rand set
         {
-            convert_float<false>(endloop, inloop, halfFft);
+            convert_float<false>(
+                /*dest=*/th->ADCinTime,
+                /*source=*/last_buffer_end,
+                /*len=*/BASE_FFT_SIZE * fft_scrap_proportion
+            );
 #if PRINT_INPUT_RANGE
-            auto minmax = std::minmax_element(input_current_block, input_current_block + input_block_size);
+            auto minmax = std::minmax_element(input_current_block, input_current_block + inputbuffer_block_size);
             blockMinMax.first = *minmax.first;
             blockMinMax.second = *minmax.second;
 #endif
-            convert_float<false>(input_current_block, inloop + halfFft, input_block_size);
+            convert_float<false>(
+                /*dest=*/th->ADCinTime + (BASE_FFT_SIZE * fft_scrap_proportion),
+                /*source=*/input_current_block,
+                /*len=*/inputbuffer_block_size
+            );
         }
         else
         {
-            convert_float<true>(endloop, inloop, halfFft);
-            convert_float<true>(input_current_block, inloop + halfFft, input_block_size);
+            convert_float<true>(
+                /*dest=*/th->ADCinTime,
+                /*source=*/last_buffer_end,
+                /*len=*/BASE_FFT_SIZE * fft_scrap_proportion
+            );
+            convert_float<true>(
+                /*dest=*/th->ADCinTime + (BASE_FFT_SIZE * fft_scrap_proportion),
+                /*source=*/input_current_block,
+                /*len=*/inputbuffer_block_size
+            );
         }
 
 #if PRINT_INPUT_RANGE
@@ -89,44 +102,71 @@ void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
         if (decimate_count == 0)
             pout = (fftwf_complex*)outputbuffer->getWritePtr();
 
-        decimate_count = (decimate_count + 1) & ((1 << decimate) - 1);
+        decimate_count = (decimate_count + 1) & ((1 << decimation) - 1);
 
         // Calculate the parameters for the first half
-        const auto count = std::min(mfft/2, halfFft - _mtunebin);
-        const auto source = &th->ADCinFreq[_mtunebin];
+        // Includes all frequencies above _center_frequency_bin
+        const auto upper_frequencies_source = &th->ADCinFreq[_center_frequency_bin];
+        const auto upper_frequencies_len = std::min(
+            BASE_FFT_HALF_SIZE - _center_frequency_bin, // Desired value
+            fft_half_size // Overflow protection
+        );
 
         // Calculate the parameters for the second half
-        const auto start = std::max(0, mfft / 2 - _mtunebin);
-        const auto source2 = &th->ADCinFreq[_mtunebin - mfft / 2];
-        const auto dest = &th->inFreqTmp[mfft / 2];
-        for (int k = 0; k < fftPerBuf; k++)
+        // Includes all frequencies below _center_frequency_bin
+        const auto lower_frequencies_source = &th->ADCinFreq[_center_frequency_bin - fft_half_size];
+        const auto lower_frequencies_start = std::max(
+            fft_half_size - _center_frequency_bin,
+            0
+        );
+        
+        // Main processing loop based on overlap-save method
+        // It also includes filtering and decimation
+        for (int k = 0; k < ffts_per_blocks; k++)
         {
             // core of fast convolution including filter and decimation
             //   main part is 'overlap-scrap' (IMHO better name for 'overlap-save'), see
             //   https://en.wikipedia.org/wiki/Overlap%E2%80%93save_method
             {
                 // FFT first stage: time to frequency, real to complex
-                // 'full' transformation size: 2 * halfFft
-                fftwf_execute_dft_r2c(plan_t2f_r2c, th->ADCinTime + (3 * halfFft / 2) * k, th->ADCinFreq);
-                // result now in th->ADCinFreq[]
+                // Input buffer: th->ADCinTime + k * (0.75 * BASE_FFT_SIZE)
+                // Transformation size: BASE_FFT_SIZE
+                // Output buffer: th->ADCinFreq[]
+                // Output size: BASE_FFT_HALF_SIZE + 1
+                fftwf_execute_dft_r2c(plan_time2freq_r2c, th->ADCinTime + k * (BASE_FFT_SIZE * fft_save_proportion), th->ADCinFreq);
 
                 // circular shift (mixing in full bins) and low/bandpass filtering (complex multiplication)
                 {
                     // circular shift tune fs/2 first half array into th->inFreqTmp[]
-                    shift_freq(th->inFreqTmp, source, filter, 0, count);
-                    if (mfft / 2 != count)
-                        memset(th->inFreqTmp[count], 0, sizeof(float) * 2 * (mfft / 2 - count));
+                    shift_freq(
+                        /*destination=*/th->inFreqTmp,
+                        /*source1=*/upper_frequencies_source,
+                        /*source2=*/filter,
+                        /*start=*/0,
+                        /*end=*/upper_frequencies_len
+                    );
+
+                    // Pad with zeroes if needed
+                    if(fft_half_size != upper_frequencies_len)
+                        memset(th->inFreqTmp[upper_frequencies_len], 0, (fft_half_size - upper_frequencies_len) * sizeof(fftwf_complex));
 
                     // circular shift tune fs/2 second half array
-                    shift_freq(dest, source2, filter2, start, mfft/2);
-                    if (start != 0)
-                        memset(th->inFreqTmp[mfft / 2], 0, sizeof(float) * 2 * start);
+                    shift_freq(
+                        /*destination=*/&th->inFreqTmp[fft_half_size],
+                        /*source1=*/lower_frequencies_source,
+                        /*source2=*/filter2,
+                        /*start=*/lower_frequencies_start,
+                        /*end=*/fft_half_size
+                    );
+                    if (lower_frequencies_start != 0)
+                        memset(th->inFreqTmp[fft_half_size], 0, lower_frequencies_start * sizeof(fftwf_complex));
                 }
                 // result now in th->inFreqTmp[]
+                // Size: fft_size (depending on the decimation)
 
-                // 'shorter' inverse FFT transform (decimation); frequency (back) to COMPLEX time domain
-                // transform size: mfft = mfftdim[k] = halfFft / 2^k with k = mdecimation
-                fftwf_execute_dft(*plan_f2t_c2c, th->inFreqTmp, th->inFreqTmp);     //  c2c decimation
+                // 'shorter' inverse FFT transform (decimation) -> frequency (back) to COMPLEX time domain
+                // transform size: fft_size (depending on the decimation)
+                fftwf_execute_dft(*plan_freq2time, th->inFreqTmp, th->inFreqTmp);
                 // result now in th->inFreqTmp[]
             }
 
@@ -147,27 +187,13 @@ void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
             if (lsb) // lower sideband
             {
                 // mirror just by negating the imaginary Q of complex I/Q
-                if (k == 0)
-                {
-                    copy<true>(pout, &th->inFreqTmp[mfft / 4], mfft/2);
-                }
-                else
-                {
-                    copy<true>(pout + mfft / 2 + (3 * mfft / 4) * (k - 1), &th->inFreqTmp[0], (3 * mfft / 4));
-                }
+                copy<true>(pout + k * (fft_size * fft_save_proportion), &th->inFreqTmp[fft_size * fft_scrap_proportion], fft_size * fft_save_proportion);
             }
             else // upper sideband
             {
-                if (k == 0)
-                {
-                    copy<false>(pout, &th->inFreqTmp[mfft / 4], mfft/2);
-                }
-                else
-                {
-                    copy<false>(pout + mfft / 2 + (3 * mfft / 4) * (k - 1), &th->inFreqTmp[0], (3 * mfft / 4));
-                }
+                copy<false>(pout + k * (fft_size * fft_save_proportion), &th->inFreqTmp[fft_size * fft_scrap_proportion], fft_size * fft_save_proportion);
             }
-            // result now in this->obuffers[]
+            // result now in this->outputbuffer[]
         }
 
         if (decimate_count == 0) {
@@ -176,7 +202,7 @@ void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
         }
         else
         {
-            pout += mfft / 2 + (3 * mfft / 4) * (fftPerBuf - 1);
+            pout += (fft_size * fft_save_proportion) * (ffts_per_blocks - 1);
         }
     } // while(run)
 //    DbgPrintf("r2iqThreadf idx %d pthread_exit %u\n",(int)th->t, pthread_self());

@@ -8,7 +8,7 @@ The ADC input real stream of 16 bit samples (at Fs = 64 Msps in the example) is 
 -  2 Msps float Fs/2 complex stream.
 The decimation factor is selectable from HDSDR GUI sampling rate selector
 
-The name r2iq as Real 2 I+Q stream
+The name fft_mt_r2iq stands for Fast Fourier Transform, Multi-Threaded, Real to I+Q stream
 
 */
 
@@ -24,33 +24,37 @@ The name r2iq as Real 2 I+Q stream
 
 #define TAG "fft_mt_r2iq"
 
-r2iqControlClass::r2iqControlClass()
-{
-	r2iqOn = false;
-	randADC = false;
-	sideband = false;
-	mdecimation = 0;
-	mratio[0] = 1;  // 1,2,4,8,16
-	for (int i = 1; i < NDECIDX; i++)
-	{
-		mratio[i] = mratio[i - 1] * 2;
-	}
-}
 
 fft_mt_r2iq::fft_mt_r2iq() :
-	r2iqControlClass(),
 	filterHw(nullptr)
 {
-	mtunebin = halfFft / 4;
-	mfftdim[0] = halfFft;
+	r2iqOn = false;
+	stateADCRand = false;
+	useSidebandLSB = false;
+
+	// --- Decimation --- //
+	decimation = 0;
+	decimation_ratio[0] = 1;  // 1,2,4,8,16
 	for (int i = 1; i < NDECIDX; i++)
 	{
-		mfftdim[i] = mfftdim[i - 1] / 2;
+		decimation_ratio[i] = decimation_ratio[i - 1] * 2;
 	}
+
+	fft_size_per_decimation[0] = halfFft;
+	for (int i = 1; i < NDECIDX; i++)
+	{
+		fft_size_per_decimation[i] = fft_size_per_decimation[i - 1] / 2;
+	}
+	// --- //
+
+	// Arbitrary value, defined to avoid overlapping with the end of the spectrum
+	// by putting 0 or BASE_FFT_HALF_SIZE 
+	center_frequency_bin = BASE_FFT_HALF_SIZE / 4;
+	
 	GainScale = 0.0f;
 
 #ifndef NDEBUG
-	int mratio = 1;  // 1,2,4,8,16,..
+	int decimation_ratio = 1;  // 1,2,4,8,16,..
 	const float Astop = 120.0f;
 	const float relPass = 0.85f;  // 85% of Nyquist should be usable
 	const float relStop = 1.1f;   // 'some' alias back into transition band is OK
@@ -58,11 +62,11 @@ fft_mt_r2iq::fft_mt_r2iq() :
 	printf("Filter tap estimation, Astop = %.1f dB, relPass = %.2f, relStop = %.2f\n", Astop, relPass, relStop);
 	for (int d = 0; d < NDECIDX; d++)
 	{
-		float Bw = 64.0f / mratio;
+		float Bw = 64.0f / decimation_ratio;
 		int ntaps = KaiserWindow(0, Astop, relPass * Bw / 128.0f, relStop * Bw / 128.0f, nullptr);
 		printf("decimation %2d: KaiserWindow(Astop = %.1f dB, Fpass = %.3f,Fstop = %.3f, Bw %.3f @ %f ) => %d taps\n",
 			d, Astop, relPass * Bw, relStop * Bw, Bw, 128.0f, ntaps);
-		mratio = mratio * 2;
+		decimation_ratio = decimation_ratio * 2;
 	}
 	printf("***************************************************************************\n");
 #endif
@@ -82,10 +86,10 @@ fft_mt_r2iq::~fft_mt_r2iq()
 	}
 	fftwf_free(filterHw);
 
-	fftwf_destroy_plan(plan_t2f_r2c);
+	fftwf_destroy_plan(plan_time2freq_r2c);
 	for (int d = 0; d < NDECIDX; d++)
 	{
-		fftwf_destroy_plan(plans_f2t_c2c[d]);
+		fftwf_destroy_plan(plan_freq2time_per_decimation[d]);
 	}
 
 	for (unsigned t = 0; t < processor_count; t++) {
@@ -98,14 +102,16 @@ fft_mt_r2iq::~fft_mt_r2iq()
 	}
 }
 
-
 float fft_mt_r2iq::setFreqOffset(float offset)
 {
-	// align to 1/4 of halfft
-	this->mtunebin = int(offset * halfFft / 4) * 4;  // mtunebin step 4 bin  ?
-	float delta = ((float)this->mtunebin  / halfFft) - offset;
+	TRACE("%f", offset);
+
+	// Round to nearest multiple of 4 bins for better performance with SIMD operations
+	this->center_frequency_bin = int(offset * BASE_FFT_HALF_SIZE / 4) * 4;
+
+	float delta = ((float)this->center_frequency_bin  / BASE_FFT_HALF_SIZE) - offset;
 	float ret = delta * getRatio(); // ret increases with higher decimation
-	DbgPrintf("offset %f mtunebin %d delta %f (%f)\n", offset, this->mtunebin, delta, ret);
+	DebugPrintln(TAG, "Offset = %f, center_frequency_bin = %d, delta = %f (%f)\n", offset, this->center_frequency_bin, delta, ret);
 	return ret;
 }
 
@@ -136,31 +142,51 @@ void fft_mt_r2iq::TurnOff(void) {
 
 bool fft_mt_r2iq::IsOn(void) { return(this->r2iqOn); }
 
-void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<float>* obuffers)
+void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_complex_t>* obuffers)
 {
-	this->inputbuffer = input;    // set to the global exported by main_loop
-	this->outputbuffer = obuffers;  // set to the global exported by main_loop
+	TracePrintln(TAG, "%f, %p, %p", gain, input, obuffers);
+	DebugPrintln(TAG, "Initialization...");
+
+	this->inputbuffer = input;
+	this->inputbuffer_block_size = input->getBlockSize();
+	DebugPrintln(TAG, "Input block size: %ld", inputbuffer_block_size);
+
+	this->outputbuffer = obuffers;
+	DebugPrintln(TAG, "Output block size: %ld", obuffers->getBlockSize());
 
 	this->GainScale = gain;
+
+	fft_scrap_proportion = 0.25;
+	fft_save_proportion = 1-fft_scrap_proportion;
+
+
+	// number of ffts needed to process one full buffer block
+	// including an overlap with the previous samples (required by the overlap-save method)
+	ffts_per_blocks = inputbuffer_block_size / (BASE_FFT_SIZE * fft_save_proportion) + 1;
+	DebugPrintln(TAG, "Number of FFTs per blocks : %d", ffts_per_blocks);
+
+
 
 	fftwf_import_wisdom_from_filename("wisdom");
 
 	// Get the processor count
 	processor_count = std::thread::hardware_concurrency() - 1;
 	DebugPrintln(TAG, "Maximum available threads: %d", processor_count);
+
 	if (processor_count == 0)
 		processor_count = 1;
 	if (processor_count > N_MAX_R2IQ_THREADS)
 		processor_count = N_MAX_R2IQ_THREADS;
 
 	DebugPrintln(TAG, "Usable threads: %d", processor_count);
+
 	{
 		fftwf_plan filterplan_t2f_c2c; // time to frequency fft
 
 		
 
 
-		DbgPrintf("RandTable generated\n");
+		DbgPrintf("RandTable generated");
 
 		   // filters
 		fftwf_complex *pfilterht;       // time filter ht
@@ -180,7 +206,7 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<float>
 		{
 			// @todo: have dynamic bandpass filter size - depending on decimation
 			//   to allow same stopband-attenuation for all decimations
-			float Bw = 64.0f / mratio[d];
+			float Bw = 64.0f / decimation_ratio[d];
 			// Bw *= 0.8f;  // easily visualize Kaiser filter's response
 			KaiserWindow(halfFft / 4 + 1, Astop, relPass * Bw / 128.0f, relStop * Bw / 128.0f, pht);
 
@@ -206,19 +232,26 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<float>
 			r2iqThreadArg *th = new r2iqThreadArg();
 			threadArgs[t] = th;
 
-			th->ADCinTime = (float*)fftwf_malloc(sizeof(float) * (halfFft + transferSize / 2));                 // 2048
+			// Buffer containing real samples of one block converted to float
+			// plus a scrap portion from the previous block for the overlap-save
+			th->ADCinTime = (float*)fftwf_malloc((inputbuffer_block_size + (BASE_FFT_SIZE * fft_scrap_proportion)) * sizeof(float));
 
-			th->ADCinFreq = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(halfFft + 1)); // 1024+1
+			th->ADCinFreq = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(BASE_FFT_HALF_SIZE + 1)); // 1024+1
 			th->inFreqTmp = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(halfFft));    // 1024
 		}
+		DebugPrintln(TAG, "Generated arguments sets for the threads");
 
-		plan_t2f_r2c = fftwf_plan_dft_r2c_1d(2 * halfFft, threadArgs[0]->ADCinTime, threadArgs[0]->ADCinFreq, FFTW_MEASURE);
+		plan_time2freq_r2c = fftwf_plan_dft_r2c_1d(/*real_length=*/BASE_FFT_SIZE, /*in=*/threadArgs[0]->ADCinTime, /*out=*/threadArgs[0]->ADCinFreq, /*flags=*/FFTW_MEASURE);
+		DebugPrintln(TAG, "Generated FFTW real to IQ plan");
+
 		for (int d = 0; d < NDECIDX; d++)
 		{
-			plans_f2t_c2c[d] = fftwf_plan_dft_1d(mfftdim[d], threadArgs[0]->inFreqTmp, threadArgs[0]->inFreqTmp, FFTW_BACKWARD, FFTW_MEASURE);
+			// Generate inverse FFT plans for each decimation steps
+			plan_freq2time_per_decimation[d] = fftwf_plan_dft_1d(fft_size_per_decimation[d], threadArgs[0]->inFreqTmp, threadArgs[0]->inFreqTmp, FFTW_BACKWARD, FFTW_MEASURE);
 		}
 		DebugPrintln(TAG, "Generated %d IFFT plans", NDECIDX);
 	}
+
 	DebugPrintln(TAG, "Initialization done !");
 }
 

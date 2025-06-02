@@ -162,6 +162,12 @@ sddc_err_t RadioHandler::Init(uint8_t dev_index)
 
 	DebugPrintln(TAG, "Detected radio : %s, firmware %x", hardware->GetName(), devFirmware);
 
+	real_buffer.setBlockSize(transferSamples);
+
+	// May be improved : r2iq assumes that the output buffer has half
+	// the size of the input buffer (due to real to complex conversion)
+	iq_buffer.setBlockSize(transferSamples/2);
+
 	this->r2iqCntrl = new fft_mt_r2iq();
 	r2iqCntrl->Init(hardware->getGain(), &real_buffer, &iq_buffer);
 
@@ -240,7 +246,7 @@ sddc_err_t RadioHandler::Start(bool convert_r2iq)
 	ret = hardware->StartStream();
 	if(ret != ERR_SUCCESS) return ret;
 
-	iq_buffer.setBlockSize(EXT_BLOCKLEN * sizeof(float));
+	//iq_buffer.setBlockSize(EXT_BLOCKLEN * sizeof(float));
 
 	r2iqEnabled = convert_r2iq;
 	if(r2iqEnabled) r2iqCntrl->TurnOn();
@@ -488,9 +494,8 @@ sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
 		if(ret != ERR_SUCCESS) return ret;
 
 		// we need shift the samples
-		//uint32_t offset = hardware->GetTunerCarrier_HF();
-		uint32_t offset = wishedFreq;
-		DebugPrintf("Offset freq %d" PRIi64 "\n", offset);
+		uint32_t offset = hardware->GetTunerCarrier_HF();
+		DebugPrintln(TAG, "Offset freq %d" PRIi64, offset);
 		fc = r2iqCntrl->setFreqOffset(offset / (GetADCSampleRate() / 2.0f));
 	}
 	else if(hardware->GetRFMode() == VHFMODE)
@@ -580,7 +585,7 @@ void RadioHandler::CaculateStats()
 
 sddc_err_t RadioHandler::SetRand(bool new_state)
 {
-	r2iqCntrl->updateRand(new_state);
+	r2iqCntrl->SetRand(new_state);
 	return hardware->SetRand(new_state);
 };
 
