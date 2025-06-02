@@ -55,25 +55,37 @@
 
 #ifdef _DEBUG
 	#include <cstdio>
-	#define DbgPrintf(fmt, ...) printf("[SDDC] " fmt, ##__VA_ARGS__)
-	#define DebugPrintf(fmt, ...) printf("[SDDC] DEBUG - %s - " fmt, __FUNCTION__, ##__VA_ARGS__)
+	#define DbgPrintf(fmt, ...) printf("[SDDC] " fmt "\n", ##__VA_ARGS__)
+	#define DebugPrintf(fmt, ...) printf("[SDDC] DEBUG - %s - " fmt "\n", __FUNCTION__, ##__VA_ARGS__)
+
+	#define DebugPrint(tag, fmt, ...)   printf("[SDDC] DEBUG - " tag ": " fmt,      ##__VA_ARGS__)
+	#define DebugPrintln(tag, fmt, ...) printf("[SDDC] DEBUG - " tag ": " fmt "\n", ##__VA_ARGS__)
 #else
 	#define DbgPrintf(fmt, ...) do {} while(0)
 	#define DebugPrintf(fmt, ...) do {} while(0)
 #endif
 
 #ifdef VERBOSE_TRACE
-	#define TRACE(fmt, ...) printf("[SDDC] TRACE - %s:%d - %s(" fmt ")\n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__);
-	#define TracePrintf(fmt, ...) printf("[SDDC] TRACE - " fmt, ##__VA_ARGS__)
+	#define TRACE(fmt, ...) printf("[SDDC] TRACE - %s:%d - %s(" fmt ")\n", __FILE__, __LINE__, __FUNCTION__, ##__VA_ARGS__)
+	#define TracePrintf(fmt, ...) printf("[SDDC] TRACE - " fmt "\n", ##__VA_ARGS__)
+
+	#define TracePrint(tag, fmt, ...)   printf("[SDDC] TRACE - " tag ": %d-%s(" fmt ")",   __LINE__, __FUNCTION__, ##__VA_ARGS__)
+	#define TracePrintln(tag, fmt, ...) printf("[SDDC] TRACE - " tag ": %d-%s(" fmt ")\n", __LINE__, __FUNCTION__, ##__VA_ARGS__)
 #else
 	#define TRACE(fmt, ...)
-	#define TracePrintf(fmt, ...) do {} while(0)
+	#define TracePrintf(fmt, ...)
 #endif
 
 #ifdef VERBOSE_TRACEEXTREME
-	#define TraceExtremePrintf(fmt, ...) printf("[SDDC] TRACE - " fmt, ##__VA_ARGS__)
+	#define TraceExtremePrintf(fmt, ...) printf("[SDDC] TRACE - " fmt "\n", ##__VA_ARGS__)
+
+	#define TraceExtremePrint(tag, fmt, ...)   TracePrint(tag, fmt, ##__VA_ARGS__)
+	#define TraceExtremePrintln(tag, fmt, ...) TracePrintln(tag, fmt, ##__VA_ARGS__)
 #else
-	#define TraceExtremePrintf(fmt, ...) do {} while(0)
+	#define TraceExtremePrintf(fmt, ...)
+
+	#define TraceExtremePrint(tag, fmt, ...)
+	#define TraceExtremePrintln(tag, fmt, ...)
 #endif
 
 #define SWVERSION           "1.3.0 RC1"

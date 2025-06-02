@@ -22,6 +22,7 @@ The name r2iq as Real 2 I+Q stream
 #include <assert.h>
 #include <utility>
 
+#define TAG "fft_mt_r2iq"
 
 r2iqControlClass::r2iqControlClass()
 {
@@ -146,15 +147,17 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<float>
 
 	// Get the processor count
 	processor_count = std::thread::hardware_concurrency() - 1;
+	DebugPrintln(TAG, "Maximum available threads: %d", processor_count);
 	if (processor_count == 0)
 		processor_count = 1;
 	if (processor_count > N_MAX_R2IQ_THREADS)
 		processor_count = N_MAX_R2IQ_THREADS;
 
+	DebugPrintln(TAG, "Usable threads: %d", processor_count);
 	{
 		fftwf_plan filterplan_t2f_c2c; // time to frequency fft
 
-		DbgPrintf("r2iqCntrl initialization\n");
+		
 
 
 		DbgPrintf("RandTable generated\n");
@@ -214,7 +217,9 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<float>
 		{
 			plans_f2t_c2c[d] = fftwf_plan_dft_1d(mfftdim[d], threadArgs[0]->inFreqTmp, threadArgs[0]->inFreqTmp, FFTW_BACKWARD, FFTW_MEASURE);
 		}
+		DebugPrintln(TAG, "Generated %d IFFT plans", NDECIDX);
 	}
+	DebugPrintln(TAG, "Initialization done !");
 }
 
 #ifdef _WIN32
@@ -254,7 +259,7 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<float>
 void * fft_mt_r2iq::r2iqThreadf(r2iqThreadArg *th)
 {
 #ifdef NO_SIMD_OPTIM
-	DebugPrintf("fft_mt_r2iq - Hardware Capability: all SIMD features (AVX, AVX2, AVX512) deactivated\n");
+	DebugPrintln(TAG, "Hardware Capability: all SIMD features (AVX, AVX2, AVX512) deactivated\n");
 	return r2iqThreadf_def(th);
 #else
 #if defined(DETECT_AVX)
@@ -277,12 +282,12 @@ void * fft_mt_r2iq::r2iqThreadf(r2iqThreadArg *th)
 		HW_AVX512F     = (info[1] & ((int)1 << 16)) != 0;
 	}
 
-	DebugPrintf("fft_mt_r2iq - Hardware Capability: AVX:%s AVX2:%s AVX512:%s\n", HW_AVX ? "yes" : "no", HW_AVX2 ? "yes" : "no", HW_AVX512F ? "yes" : "no");
+	DebugPrintln(TAG, "Hardware Capability: AVX:%s AVX2:%s AVX512:%s\n", HW_AVX ? "yes" : "no", HW_AVX2 ? "yes" : "no", HW_AVX512F ? "yes" : "no");
 
 	return r2iqThreadf_def(th);
 #elif defined(DETECT_NEON)
 	bool NEON = detect_neon();
-	DbgPrintf("Hardware Capability: NEON:%d\n", NEON);
+	DebugPrintln(TAG, "Hardware Capability: NEON:%d\n", NEON);
 	return r2iqThreadf_def(th);
 #endif
 #endif

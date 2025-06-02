@@ -36,7 +36,7 @@
 
 using namespace std;
 
-// transfer variables
+#define TAG "RadioHandler"
 
 unsigned long Failures = 0;
 
@@ -95,7 +95,7 @@ RadioHandler::RadioHandler():
 	fc(0.0f)
 	
 {
-	TracePrintf("RadioHandler::RadioHandler()\n");
+	TracePrintln(TAG, "");
 
 	fx3 = CreateUsbHandler();
 	stateFineTune = new shift_limited_unroll_C_sse_data_t();
@@ -103,11 +103,11 @@ RadioHandler::RadioHandler():
 
 sddc_err_t RadioHandler::Init(uint8_t dev_index)
 {
-	TracePrintf("RadioHandler::Init(%d)\n", dev_index);
+	TracePrintln(TAG, "%d", dev_index);
 
 	if(!fx3->Open(dev_index))
 	{
-		DebugPrintf("RadioHandler::RadioHandler - FX3 open failed\n");
+		DebugPrintln(TAG, "FX3 open failed");
 		return ERR_FX3_OPEN_FAILED;
 	}
 
@@ -150,7 +150,7 @@ sddc_err_t RadioHandler::Init(uint8_t dev_index)
 
 	default:
 		hardware = new DummyRadio(fx3);
-		DbgPrintf("WARNING no SDR connected\n");
+		DbgPrintf("WARNING no SDR connected");
 		break;
 	}
 
@@ -160,7 +160,7 @@ sddc_err_t RadioHandler::Init(uint8_t dev_index)
 	ret = hardware->SetADCSampleRate(DEFAULT_ADC_FREQ);
 	if(ret != ERR_SUCCESS) return ret;
 
-	DebugPrintf("RadioHandler - Detected radio : %s, firmware %x\n", hardware->GetName(), devFirmware);
+	DebugPrintln(TAG, "Detected radio : %s, firmware %x", hardware->GetName(), devFirmware);
 
 	this->r2iqCntrl = new fft_mt_r2iq();
 	r2iqCntrl->Init(hardware->getGain(), &real_buffer, &iq_buffer);
@@ -227,7 +227,7 @@ sddc_err_t RadioHandler::SetDecimation(uint8_t decimate)
 sddc_err_t RadioHandler::Start(bool convert_r2iq)
 {
 
-	TracePrintf("RadioHandler::Start(%s)\n", convert_r2iq ? "true" : "false");
+	TracePrintln(TAG, "%s", convert_r2iq ? "true" : "false");
 
 	// Stop the stream  if it was already running
 	sddc_err_t ret = Stop();
@@ -261,8 +261,8 @@ sddc_err_t RadioHandler::Start(bool convert_r2iq)
 
 sddc_err_t RadioHandler::Stop()
 {
-	TracePrintf("RadioHandler::Stop()\n");
-	DebugPrintf("RadioHandler - Stream running : %s\n", streamRunning ? "true" : "false");
+	TracePrintln(TAG, "");
+	DebugPrintln(TAG, "Stream running : %s", streamRunning ? "true" : "false");
 
 	if(streamRunning)
 	{
@@ -273,10 +273,10 @@ sddc_err_t RadioHandler::Stop()
 		fx3->StopStream();
 
 		show_stats_thread.join(); //first to be joined
-		DbgPrintf("show_stats_thread join2\n");
+		DbgPrintf("show_stats_thread join2");
 
 		submit_thread.join();
-		DbgPrintf("submit_thread join1\n");
+		DbgPrintf("submit_thread join1");
 
 		sddc_err_t ret = hardware->StopStream(); // SDR stops sending frames
 		if(ret != ERR_SUCCESS) return ret;
@@ -286,10 +286,10 @@ sddc_err_t RadioHandler::Stop()
 
 sddc_err_t RadioHandler::SetRFMode(sddc_rf_mode_t mode)
 {
-	TracePrintf("RadioHandler::SetRFMode(%d)\n", mode);
+	TracePrintln(TAG, "%d", mode);
 	if(hardware->GetRFMode() != mode)
 	{
-		DebugPrintf("Switching to RF mode %d\n", mode);
+		DebugPrintln(TAG, "Switching to RF mode %d", mode);
 
 		sddc_err_t ret = hardware->SetRFMode(mode);
 		if(ret != ERR_SUCCESS) return ret;
@@ -299,7 +299,7 @@ sddc_err_t RadioHandler::SetRFMode(sddc_rf_mode_t mode)
 
 vector<float> RadioHandler::GetAttenuationSteps()
 {
-	TracePrintf("RadioHandler::GetAttenuationSteps()\n");
+	TracePrintln(TAG, "");
 	switch(hardware->GetRFMode())
 	{
 		case HFMODE:
@@ -312,15 +312,15 @@ vector<float> RadioHandler::GetAttenuationSteps()
 }
 array<float, 2> RadioHandler::GetAttenuationRange()
 {
-	TracePrintf("RadioHandler::GetAttenuationRange()\n");
+	TracePrintln(TAG, "");
 	
 	vector<float> att_steps = GetAttenuationSteps();
-	DebugPrintf("Attenuation : min=%f, max=%f\n", att_steps.front(), att_steps.back());
+	DebugPrintln(TAG, "Attenuation : min=%f, max=%f", att_steps.front(), att_steps.back());
 	return array<float, 2>{att_steps.front(), att_steps.back()};
 }
 float RadioHandler::GetAttenuation()
 {
-	TracePrintf("RadioHandler::GetAttenuation()\n");
+	TracePrintln(TAG, "");
 
 	int step = 0;
 	switch(hardware->GetRFMode())
@@ -339,7 +339,7 @@ float RadioHandler::GetAttenuation()
 
 	if(step >= 0 && step < att_steps.size())
 	{
-		DebugPrintf("Attenuation = %f, step = %d\n", att_steps[step], step);
+		DebugPrintln(TAG, "Attenuation = %f, step = %d", att_steps[step], step);
 		return att_steps[step];
 	}
 
@@ -372,10 +372,10 @@ sddc_err_t RadioHandler::SetAttenuation(float new_att)
 	switch(hardware->GetRFMode())
 	{
 		case HFMODE:
-			DebugPrintf("HF gain = %f, step = %d\n", att_steps[step], step);
+			DebugPrintln(TAG, "HF gain = %f, step = %d", att_steps[step], step);
 			return hardware->SetRFAttenuation_HF(step);
 		case VHFMODE:
-			DebugPrintf("VHF gain = %f, step = %d\n", att_steps[step], step);
+			DebugPrintln(TAG, "VHF gain = %f, step = %d", att_steps[step], step);
 			return hardware->SetRFAttenuation_HF(step);
 		default:
 			return ERR_NOT_COMPATIBLE;
@@ -396,15 +396,15 @@ vector<float> RadioHandler::GetGainSteps()
 }
 array<float, 2> RadioHandler::GetGainRange()
 {
-	TracePrintf("RadioHandler::GetGainRange()\n");
+	TracePrintln(TAG, "");
 	
 	vector<float> gain_steps = GetGainSteps();
-	DebugPrintf("Gain : min=%f, max=%f\n", gain_steps.front(), gain_steps.back());
+	DebugPrintln(TAG, "Gain : min=%f, max=%f", gain_steps.front(), gain_steps.back());
 	return array<float, 2>{gain_steps.front(), gain_steps.back()};
 }
 float RadioHandler::GetGain()
 {
-	TracePrintf("RadioHandler::GetGain()\n");
+	TracePrintln(TAG, "");
 
 	int step = 0;
 	switch(hardware->GetRFMode())
@@ -423,7 +423,7 @@ float RadioHandler::GetGain()
 
 	if(step >= 0 && step < gain_steps.size())
 	{
-		DebugPrintf("Gain = %f, step = %d\n", gain_steps[step], step);
+		DebugPrintln(TAG, "Gain = %f, step = %d", gain_steps[step], step);
 		return gain_steps[step];
 	}
 
@@ -456,10 +456,10 @@ sddc_err_t RadioHandler::SetGain(float new_gain)
 	switch(hardware->GetRFMode())
 	{
 		case HFMODE:
-			DebugPrintf("HF gain = %f, step = %d\n", gain_steps[step], step);
+			DebugPrintln(TAG, "HF gain = %f, step = %d", gain_steps[step], step);
 			return hardware->SetIFGain_HF(step);
 		case VHFMODE:
-			DebugPrintf("VHF gain = %f, step = %d\n", gain_steps[step], step);
+			DebugPrintln(TAG, "VHF gain = %f, step = %d", gain_steps[step], step);
 			return hardware->SetIFGain_VHF(step);
 		default:
 			return ERR_NOT_COMPATIBLE;
@@ -500,7 +500,7 @@ sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
 
 		// we need shift the samples
 		uint32_t offset = hardware->GetTunerCarrier_VHF();
-		DbgPrintf("Offset freq %d" PRIi64 "\n", offset);
+		DbgPrintf("Offset freq %d" PRIi64, offset);
 
 		// sign change with sideband used
 		fc = -r2iqCntrl->setFreqOffset(offset / (GetADCSampleRate() / 2.0f));
@@ -573,7 +573,7 @@ void RadioHandler::CaculateStats()
 		real_samples_per_second = (float)count_real_samples / timeElapsed.count();
 		iq_samples_per_second = (float)count_iq_samples / timeElapsed.count();
 
-		DebugPrintf("RadioHandler - real=%fSps, iq=%fSps\n", real_samples_per_second, iq_samples_per_second);
+		DebugPrintln(TAG, "real=%fSps, iq=%fSps", real_samples_per_second, iq_samples_per_second);
 	}
 	return;
 }
@@ -611,7 +611,7 @@ sddc_err_t	RadioHandler::SetLED   (sddc_leds_t led, bool on) { return hardware->
 
 size_t RadioHandler::GetDeviceListLength()
 {
-	TracePrintf("RadioHandler::GetDeviceListLength()\n");
+	TracePrintln(TAG, "");
 	auto fx3_handler = CreateUsbHandler();
 	size_t len = fx3_handler->GetDeviceListLength();
 	delete fx3_handler;
@@ -620,7 +620,7 @@ size_t RadioHandler::GetDeviceListLength()
 }
 sddc_err_t RadioHandler::GetDevice(uint8_t dev_index, sddc_device_t *dev_pointer)
 {
-	TracePrintf("RadioHandler::GetDevice(%d, %p)\n", dev_index, dev_pointer);
+	TracePrintln(TAG, "%d, %p", dev_index, dev_pointer);
 
 	auto fx3_handler = CreateUsbHandler();
 	fx3_handler->GetDevice(dev_index, dev_pointer->product, 32, dev_pointer->serial_number, 32);

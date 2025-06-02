@@ -10,6 +10,8 @@
 #define firmware_data ((const char *)FIRMWARE)
 #define firmware_size sizeof(FIRMWARE)
 
+#define TAG "FX3Handler"
+
 fx3class *CreateUsbHandler()
 {
     return new fx3handler();
@@ -28,9 +30,9 @@ fx3handler::~fx3handler()
 
 bool fx3handler::Open(uint8_t dev_index)
 {
-    TracePrintf("fx3handler::Open(%d)\n", dev_index);
+    TracePrintln(TAG, "%d", dev_index);
     dev = usb_device_open(dev_index, firmware_data, firmware_size);
-    DebugPrintf("fx3handler - Open device with dev_index=%d, dev=%p\n", devidx, dev);
+    DebugPrintf(TAG, "Open device with dev_index=%d, dev=%p\n", dev_index, dev);
 
     usleep(5000);
     Control(STOPFX3, (uint8_t)0);
@@ -40,7 +42,7 @@ bool fx3handler::Open(uint8_t dev_index)
 
 bool fx3handler::Close(void)
 {
-    TracePrintf("fx3handler::Close()\n");
+    TracePrintln(TAG, "");
 
     if (dev) {
         usb_device_close(dev);
@@ -83,14 +85,14 @@ bool fx3handler::GetHardwareInfo(uint32_t *data)
 
 void fx3handler::StartStream(ringbuffer<int16_t> &samples_buf)
 {
-    TracePrintf("fx3handler::StartStream()\n");
+    TracePrintln(TAG, "");
 
     inputbuffer = &samples_buf;
 
     stream = streaming_open_async(this->dev, transferSize, concurrentTransfers, PacketRead, this);
     samples_buf.setBlockSize(streaming_framesize(stream) / sizeof(int16_t));
 
-    DebugPrintf("fx3handler - Samples buffer blocksize: %d\n", samples_buf.getBlockSize());
+    DebugPrintf(TAG, "Samples buffer blocksize: %d\n", samples_buf.getBlockSize());
 
     // Start background thread to poll the events
     run = true;
@@ -121,7 +123,7 @@ void fx3handler::StopStream()
 
 void fx3handler::PacketRead(uint32_t data_size, uint8_t *data, void *context)
 {
-    TraceExtremePrintf("fx3handler::PacketRead(%d, %p, %p)\n", data_size, data, context);
+    TraceExtremePrintln(TAG, "%d, %p, %p", data_size, data, context);
     fx3handler *handler = (fx3handler *)context;
 
     auto *ptr = handler->inputbuffer->getWritePtr();

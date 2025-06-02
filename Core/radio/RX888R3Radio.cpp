@@ -32,6 +32,8 @@
 
 #define MODE HIGH_MODE
 
+#define TAG "RX888R3Radio"
+
 const vector<float> RX888R3Radio::rf_steps_vhf = {
     0.0f, 0.9f, 1.4f, 2.7f, 3.7f, 7.7f, 8.7f, 12.5f, 14.4f, 15.7f,
     16.6f, 19.7f, 20.7f, 22.9f, 25.4f, 28.0f, 29.7f, 32.8f,
@@ -118,7 +120,7 @@ sddc_err_t RX888R3Radio::SetRFAttenuation_HF(int att)
         att = 0;
     uint8_t d = rf_steps_hf.size() - att - 1;
 
-    DbgPrintf("UpdateattRF %f \n", this->rf_steps_hf[att]);
+    DebugPrintln(TAG, "UpdateattRF %f", this->rf_steps_hf[att]);
 
     return Fx3->SetArgument(DAT31_ATT, d) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
 }
@@ -176,7 +178,7 @@ sddc_err_t RX888R3Radio::SetLOFreq_VHF(uint32_t freq)
     uint32_t hardwareVCO = targetVCO / 1000000; // convert to MHz
     uint32_t offset = targetVCO % 1000000;
 
-    DebugPrintf("Target VCO = %uHZ, hardware VCO= %dMHX, Actual IF = %dHZ\n", freq + IF_FREQ, hardwareVCO, IF_FREQ - offset);
+    DebugPrintln(TAG, "Target VCO = %uHZ, hardware VCO= %dMHX, Actual IF = %dHZ", freq + IF_FREQ, hardwareVCO, IF_FREQ - offset);
 
     if(!Fx3->Control(TUNERTUNE, hardwareVCO))
         return ERR_FX3_TRANSFER_FAILED;
@@ -207,13 +209,15 @@ vector<float> RX888R3Radio::GetIFSteps_VHF()
 
 sddc_err_t RX888R3Radio::SetIFGain_HF(int gain_index)
 {
+    TracePrintln(TAG, "%d", gain_index);
+
     uint8_t gain;
     if (gain_index > GAIN_SWEET_POINT)
         gain = HIGH_MODE | (gain_index - GAIN_SWEET_POINT + 3);
     else
         gain = LOW_MODE | (gain_index + 1);
 
-    DebugPrintf("SetIFGain_HF %d \n", gain);
+    DebugPrintln(TAG, "SetIFGain_HF %d", gain);
 
     return Fx3->SetArgument(AD8340_VGA, gain) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
     

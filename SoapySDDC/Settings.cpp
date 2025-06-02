@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <cstring>
 
-static void _Callback(void *context, const float *data, uint32_t len)
+#define TAG "SoapySDDC_Settings"
 {
     SoapySDDC *sddc = (SoapySDDC *)context;
     sddc->Callback(data, len);
@@ -13,7 +13,7 @@ static void _Callback(void *context, const float *data, uint32_t len)
 
 int SoapySDDC::Callback(const float *data, uint32_t len)
 {
-    TraceExtremePrintf("SoapySDDC::Callback(%p, %d)\n", data, len);
+    TraceExtremePrintln(TAG, "%p, %d", data, len);
     if (_buf_count == numBuffers)
     {
         _overflowEvent = true;
@@ -37,7 +37,7 @@ int SoapySDDC::Callback(const float *data, uint32_t len)
 SoapySDDC::SoapySDDC(uint8_t dev_index): deviceId(-1),
                                         numBuffers(16)
 {
-    TracePrintf("SoapySDDC::SoapySDDC(%d)\n", dev_index);
+    TracePrintln(TAG, "%d", dev_index);
     radio_handler = new RadioHandler();
     radio_handler->Init(dev_index);
     radio_handler->AttachIQ(_Callback, this);
@@ -45,7 +45,7 @@ SoapySDDC::SoapySDDC(uint8_t dev_index): deviceId(-1),
 
 SoapySDDC::~SoapySDDC(void)
 {
-    TracePrintf("SoapySDDC::~SoapySDDC()\n");
+    TracePrintln(TAG, "");
     radio_handler->Stop();
 
     delete radio_handler;
@@ -53,19 +53,19 @@ SoapySDDC::~SoapySDDC(void)
 
 std::string SoapySDDC::getDriverKey(void) const
 {
-    TracePrintf("SoapySDDC::getDriverKey()\n");
+    TracePrintln(TAG, "");
     return "SDDC";
 }
 
 std::string SoapySDDC::getHardwareKey(void) const
 {
-    TracePrintf("SoapySDDC::getHardwareKey()\n");
+    TracePrintln(TAG, "");
     return std::string(radio_handler->getHardwareName());
 }
 
 SoapySDR::Kwargs SoapySDDC::getHardwareInfo(void) const
 {
-    TracePrintf("SoapySDDC::getHardwareInfo()\n");
+    TracePrintln(TAG, "");
     // key/value pairs for any useful information
     // this also gets printed in --probe
     SoapySDR::Kwargs args;
@@ -83,20 +83,20 @@ SoapySDR::Kwargs SoapySDDC::getHardwareInfo(void) const
 
 size_t SoapySDDC::getNumChannels(const int dir) const
 {
-    TracePrintf("SoapySDDC::getNumChannels(%i)\n", dir);
+    TracePrintln(TAG, "%i", dir);
     return (dir == SOAPY_SDR_RX) ? 1 : 0;
 }
 
 SoapySDR::Kwargs SoapySDDC::getChannelInfo(const int direction, const size_t channel) const
 {
-    TracePrintf("SoapySDDC::getChannelInfo(%i, %ld)\n", direction, channel);
+    TracePrintln(TAG, "%i, %ld", direction, channel);
     // We could add infos about the channel here in the future
     return SoapySDR::Kwargs();
 }
 
 bool SoapySDDC::getFullDuplex(const int dir, const size_t chan) const
 {
-    TracePrintf("SoapySDDC::getFullDuplex(%i, %ld)\n", dir, chan);
+    TracePrintln(TAG, "%i, %ld", dir, chan);
     return false;
 }
 
@@ -106,7 +106,7 @@ bool SoapySDDC::getFullDuplex(const int dir, const size_t chan) const
 
 std::vector<std::string> SoapySDDC::listAntennas(const int direction, const size_t) const
 {
-    TracePrintf("SoapySDDC::listAntennas(%d)\n", direction);
+    TracePrintln(TAG, "%d", direction);
     std::vector<std::string> antennas;
 
     // No antennas available in TX, return early
@@ -123,7 +123,7 @@ std::vector<std::string> SoapySDDC::listAntennas(const int direction, const size
 // set the selected antenna
 void SoapySDDC::setAntenna(const int direction, const size_t, const std::string &name)
 {
-    TracePrintf("SoapySDDC::setAntenna(%d, %s)\n", direction, name.c_str());
+    TracePrintln(TAG, "%d, %s", direction, name.c_str());
 
     // No antennas available in TX, return early
     if (direction != SOAPY_SDR_RX)
@@ -150,7 +150,7 @@ void SoapySDDC::setAntenna(const int direction, const size_t, const std::string 
 // get the selected antenna
 std::string SoapySDDC::getAntenna(const int direction, const size_t) const
 {
-    TracePrintf("SoapySDDC::getAntenna(%d)\n", direction);
+    TracePrintln(TAG, "%d", direction);
 
     // No antennas available in TX, return early
     if (direction != SOAPY_SDR_RX)
@@ -171,37 +171,37 @@ std::string SoapySDDC::getAntenna(const int direction, const size_t) const
 
 bool SoapySDDC::hasDCOffset(const int, const size_t) const
 {
-    TracePrintf("SoapySDDC::hasDCOffset()\n");
+    TracePrintln(TAG, "");
     return false;
 }
 
 bool SoapySDDC::hasDCOffsetMode(const int, const size_t) const
 {
-    TracePrintf("SoapySDDC::hasDCOffsetMode()\n");
+    TracePrintln(TAG, "");
     return false;
 }
 
 bool SoapySDDC::hasFrequencyCorrection(const int, const size_t) const
 {
-    TracePrintf("SoapySDDC::hasFrequencyCorrection()\n");
+    TracePrintln(TAG, "");
     return false;
 }
 
 bool SoapySDDC::hasIQBalance(const int, const size_t) const
 {
-    TracePrintf("SoapySDDC::hasIQBalance()\n");
+    TracePrintln(TAG, "");
     return false;
 }
 
 bool SoapySDDC::hasIQBalanceMode(const int, const size_t) const
 {
-    TracePrintf("SoapySDDC::hasIQBalanceMode()\n");
+    TracePrintln(TAG, "");
     return false;
 }
 
 std::vector<std::string> SoapySDDC::listGains(const int, const size_t) const
 {
-    TracePrintf("SoapySDDC::listGains()\n");
+    TracePrintln(TAG, "");
     std::vector<std::string> gains;
     gains.push_back("RF Attenuator");
     gains.push_back("IF Gain");
@@ -210,13 +210,13 @@ std::vector<std::string> SoapySDDC::listGains(const int, const size_t) const
 
 bool SoapySDDC::hasGainMode(const int direction, const size_t channel) const
 {
-    TracePrintf("SoapySDDC::hasGainMode(%i, %ld)\n", direction, channel);
+    TracePrintln(TAG, "%i, %ld", direction, channel);
     return false;
 }
 
 double SoapySDDC::getGain(const int direction, const size_t channel, const std::string &name) const
 {
-    TracePrintf("SoapySDDC::getGain(%i, %ld, %s)\n", direction, channel, name.c_str());
+    TracePrintln(TAG, "%i, %ld, %s", direction, channel, name.c_str());
 
     if (name == "RF Attenuator") {
         return radio_handler->GetAttenuation();
@@ -228,7 +228,7 @@ double SoapySDDC::getGain(const int direction, const size_t channel, const std::
 }
 void SoapySDDC::setGain(const int direction, const size_t channel, const std::string &name, const double value)
 {
-    TracePrintf("SoapySDDC::setGain(%i, %ld, %s, %f)\n", direction, channel, name.c_str(), value);
+    TracePrintln(TAG, "%i, %ld, %s, %f", direction, channel, name.c_str(), value);
 
     if (name == "RF Attenuator") {
         radio_handler->SetAttenuation(value);
@@ -240,7 +240,7 @@ void SoapySDDC::setGain(const int direction, const size_t channel, const std::st
 
 SoapySDR::Range SoapySDDC::getGainRange(const int direction, const size_t channel, const std::string &name) const
 {
-    TracePrintf("SoapySDDC::getGainRange(%i, %ld, %s)\n", direction, channel, name.c_str());
+    TracePrintln(TAG, "%i, %ld, %s", direction, channel, name.c_str());
 
     if (name == "RF Attenuator") {
         array<float, 2> gain_range = radio_handler->GetAttenuationRange();
@@ -291,7 +291,7 @@ double SoapySDDC::getFrequency(const int direction, const size_t channel, const 
 
 std::vector<std::string> SoapySDDC::listFrequencies(const int direction, const size_t channel) const
 {
-    TracePrintf("SoapySDDC::listFrequencies(%i, %ld)\n", direction, channel);
+    TracePrintln(TAG, "%i, %ld", direction, channel);
     std::vector<std::string> ret;
 
     if(direction != SOAPY_SDR_RX)
@@ -308,7 +308,7 @@ std::vector<std::string> SoapySDDC::listFrequencies(const int direction, const s
 
 SoapySDR::RangeList SoapySDDC::getFrequencyRange(const int direction, const size_t channel) const
 {
-    TracePrintf("SoapySDDC::getFrequencyRange(%i, %ld)\n", direction, channel);
+    TracePrintln(TAG, "%i, %ld", direction, channel);
 
     SoapySDR::RangeList ranges;
 
@@ -319,7 +319,7 @@ SoapySDR::RangeList SoapySDDC::getFrequencyRange(const int direction, const size
 
 SoapySDR::RangeList SoapySDDC::getFrequencyRange(const int direction, const size_t channel, const std::string &name) const
 {
-    TracePrintf("SoapySDDC::getFrequencyRange(%i, %ld, %s)\n", direction, channel, name.c_str());
+    TracePrintln(TAG, "%i, %ld, %s", direction, channel, name.c_str());
 
     SoapySDR::RangeList ranges;
 
@@ -335,28 +335,28 @@ SoapySDR::RangeList SoapySDDC::getFrequencyRange(const int direction, const size
     return ranges;
 }
 
-SoapySDR::ArgInfoList SoapySDDC::getFrequencyArgsInfo(const int, const size_t) const
+SoapySDR::ArgInfoList SoapySDDC::getFrequencyArgsInfo(const int direction, const size_t channel) const
 {
-    DbgPrintf("SoapySDDC::getFrequencyArgsInfo\n");
+    TracePrintln(TAG, "%i, %ld", direction, channel);
     return SoapySDR::ArgInfoList();
 }
 
-void SoapySDDC::setSampleRate(const int, const size_t, const double rate)
+void SoapySDDC::setSampleRate(const int direction, const size_t channel, const double rate)
 {
-    TracePrintf("SoapySDDC::setSampleRate(%f)\n", rate);
+    TracePrintln(TAG, "%i, %ld, %f", direction, channel, rate);
     
     radio_handler->SetADCSampleRate(rate*2);
 }
 
-double SoapySDDC::getSampleRate(const int, const size_t) const
+double SoapySDDC::getSampleRate(const int direction, const size_t channel) const
 {
-    TracePrintf("SoapySDDC::getSampleRate()\n");
+    TracePrintln(TAG, "%i, %ld", direction, channel);
     return radio_handler->GetADCSampleRate()/2;
 }
 
 SoapySDR::RangeList SoapySDDC::getSampleRateRange(const int direction, const size_t channel) const
 {
-    DbgPrintf("SoapySDDC::getSampleRateRange(%d, %ld)\n", direction, channel);
+    TracePrintln(TAG, "%i, %ld", direction, channel);
 
     SoapySDR::RangeList ranges;
 
@@ -368,6 +368,7 @@ SoapySDR::RangeList SoapySDDC::getSampleRateRange(const int direction, const siz
 
 vector<string> SoapySDDC::listSensors()
 {
+    TracePrintln(TAG, "");
     return vector<string>{
         "RF mode"
     };
@@ -375,6 +376,7 @@ vector<string> SoapySDDC::listSensors()
 
 string SoapySDDC::readSensor(const string key)
 {
+    TracePrintln(TAG, "%s", key.c_str());
     if(key == "RF mode")
     {
         return radio_handler->GetRFMode() == VHFMODE ? "VHF" : "HF";
@@ -385,7 +387,7 @@ string SoapySDDC::readSensor(const string key)
 
 SoapySDR::ArgInfoList SoapySDDC::getSettingInfo(void) const
 {
-    TRACE("");
+    TracePrintln(TAG, "");
 
     SoapySDR::ArgInfoList setArgs;
 
@@ -434,6 +436,8 @@ SoapySDR::ArgInfoList SoapySDDC::getSettingInfo(void) const
 
 void SoapySDDC::writeSetting(const std::string &key, const std::string &value)
 {
+    TracePrintln(TAG, "%s, %s", key.c_str(), value.c_str());
+
     if(key == "SetBiasT_HF")
     {
         bool biasTee = (value == "true") ? true : false;
