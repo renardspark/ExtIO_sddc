@@ -38,7 +38,7 @@ sddc_err_t sddc_get_device(uint8_t dev_index, struct sddc_device_t *dev);
 
 // ----- libsddc ----- //
 
-typedef void (*sddc_read_async_cb_t)(uint32_t data_size, const float *data,
+typedef void (*sddc_read_async_cb_t)(uint32_t data_size, const sddc_complex_t *data,
 										void *context);
 
 typedef struct libsddc_handler* libsddc_handler_t;
