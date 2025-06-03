@@ -295,7 +295,7 @@ SoapySDR::Range SoapySDDC::getGainRange(const int direction, const size_t channe
 
 void SoapySDDC::setFrequency(const int direction, const size_t channel, const double frequency, const SoapySDR::Kwargs &)
 {
-    TracePrintf("SoapySDDC::setFrequency(%i, %ld, %f)\n", direction, channel, frequency);
+    TracePrintln(TAG, "%i, %ld, %f", direction, channel, frequency);
     radio_handler->SetRFMode(radio_handler->GetBestRFMode(frequency));
     radio_handler->SetCenterFrequency((uint32_t)frequency);
     centerFrequency = radio_handler->GetCenterFrequency();
@@ -303,13 +303,13 @@ void SoapySDDC::setFrequency(const int direction, const size_t channel, const do
 
 void SoapySDDC::setFrequency(const int direction, const size_t channel, const string &name, const double frequency, const SoapySDR::Kwargs &args)
 {
-    TracePrintf("SoapySDDC::setFrequency(%i, %ld, %s, %f)\n", direction, channel, name.c_str(), frequency);
+    TracePrintln(TAG, "%i, %ld, %s, %f", direction, channel, name.c_str(), frequency);
     setFrequency(direction, channel, frequency, args);
 }
 
 double SoapySDDC::getFrequency(const int direction, const size_t channel) const
 {
-    TracePrintf("SoapySDDC::getFrequency(%i, %ld)\n", direction, channel);
+    TracePrintln(TAG, "%i, %ld", direction, channel);
 
     return (double)centerFrequency;
 }
