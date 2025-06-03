@@ -128,11 +128,13 @@ sddc_err_t RX888R2Radio::SetRFAttenuation_VHF(uint16_t att)
 
 uint32_t RX888R2Radio::GetTunerCarrier_HF()
 {
-    return 0;
+    return freqLO_HF;
 }
-sddc_err_t RX888R2Radio::SetLOFreq_HF(uint32_t)
+sddc_err_t RX888R2Radio::SetLOFreq_HF(uint32_t freq)
 {
-    return ERR_NOT_COMPATIBLE;
+    freqLO_HF = freq;
+
+    return ERR_SUCCESS;
 }
 
 
