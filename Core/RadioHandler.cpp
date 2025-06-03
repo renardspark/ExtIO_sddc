@@ -24,7 +24,6 @@
 
 #include <stdio.h>
 #include <string.h>
-#include <inttypes.h>
 #include <chrono>
 
 #include "RadioHandler.h"
@@ -494,7 +493,7 @@ sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
 
 		// we need shift the samples
 		uint32_t offset = hardware->GetTunerCarrier_HF();
-		DebugPrintln(TAG, "Offset freq %d" PRIi64, offset);
+		DebugPrintln(TAG, "Tuner frequency is at %dHz", offset);
 		fc = r2iqCntrl->setFreqOffset(offset / (GetADCSampleRate() / 2.0f));
 	}
 	else if(hardware->GetRFMode() == VHFMODE)
@@ -504,7 +503,7 @@ sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
 
 		// we need shift the samples
 		uint32_t offset = hardware->GetTunerCarrier_VHF();
-		DbgPrintf("Offset freq %d" PRIi64, offset);
+		DebugPrintln(TAG, "Tuner frequency is at %dHz", offset);
 
 		// sign change with sideband used
 		fc = -r2iqCntrl->setFreqOffset(offset / (GetADCSampleRate() / 2.0f));
