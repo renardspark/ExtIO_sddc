@@ -26,8 +26,7 @@ void SoapySDDC::Callback(const sddc_complex_t *data, uint32_t len)
     buff.resize(len * sizeof(sddc_complex_t));
     memcpy(buff.data(), data, len * sizeof(sddc_complex_t));
 
-    samples_block_write++;
-    samples_block_write %= numBuffers;
+    samples_block_write = (samples_block_write + 1) % numBuffers;
 
     {
         std::lock_guard<std::mutex> lock(_buf_mutex);

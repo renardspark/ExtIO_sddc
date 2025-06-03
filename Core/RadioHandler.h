@@ -22,23 +22,22 @@
 #ifndef _H_RADIOHANDLER
 #define _H_RADIOHANDLER
 
-#include "config.h"
 #include <array>
 #include <vector>
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
 #include <stdint.h>
+
+#include "config.h"
 #include "FX3Class.h"
 #include "radio/RadioHardware.h"
 #include "fft_mt_r2iq.h"
-
 #include "dsp/ringbuffer.h"
 
 using namespace std;
 
 class RadioHardware;
-class r2iqControlClass;
 
 enum {
 	RESULT_OK,

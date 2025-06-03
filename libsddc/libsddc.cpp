@@ -81,6 +81,7 @@ void sddc_destroy(libsddc_handler_t t)
 {
 	if(t->radio_handler)
 		delete t->radio_handler;
+	delete t;
 }
 
 

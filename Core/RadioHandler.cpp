@@ -177,6 +177,7 @@ RadioHandler::~RadioHandler()
 	TracePrintln(TAG, "");
 	
 	delete stateFineTune;
+	delete r2iqCntrl;
 	delete hardware;
 	delete fx3;
 }

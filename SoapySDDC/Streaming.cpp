@@ -23,7 +23,7 @@ std::string SoapySDDC::getNativeStreamFormat(const int direction, const size_t c
 {
     TracePrintln(TAG, "%i, %ld, %f", direction, channel, fullScale);
     fullScale = 1.0;
-    return SOAPY_SDR_S16;
+    return SOAPY_SDR_CF32;
 }
 
 SoapySDR::ArgInfoList SoapySDDC::getStreamArgsInfo(const int direction, const size_t channel) const
@@ -55,10 +55,14 @@ SoapySDR::Stream *SoapySDDC::setupStream(const int direction,
         throw std::runtime_error("setupStream failed: SDDC only supports CF32.");
     }
 
+    // FIXME : The size of the buffers should be aligned directly on the size
+    // of the output IQ buffer
     bytesPerSample = sizeof(sddc_complex_t);
-    //bufferLength = 262144 / bytesPerSample;
     bufferLength = transferSamples / 2;
-    DebugPrintln(TAG, "Expect input buffer of size %ld (%ld bytes)", bufferLength, bufferLength * bytesPerSample);
+
+    DebugPrintln(TAG, "CF32 element size : %ld", SoapySDR::formatToSize(SOAPY_SDR_CF32));
+    DebugPrintln(TAG, "Bytes per sample : %d", bytesPerSample);
+    DebugPrintln(TAG, "Input buffer size : %ld (%ld bytes)", bufferLength, bufferLength * bytesPerSample);
 
     samples_block_write = 0;
     samples_block_read  = 0;
@@ -129,7 +133,7 @@ int SoapySDDC::readStream(SoapySDR::Stream *stream,
 
     size_t returnedElems = std::min(bufferedElems, numElems);
 
-    // convert into user's buff0
+    // convert into user's buffer for channel 0
     std::memcpy(buffer_channel0, _currentBuff, returnedElems * bytesPerSample);
 
     // bump variables for next call into readStream
@@ -178,8 +182,7 @@ int SoapySDDC::acquireReadBuffer(SoapySDR::Stream *stream,
     }
     // extract handle and buffer
     handle = samples_block_read;
-    samples_block_read++;
-    samples_block_read %= numBuffers;
+    samples_block_read = (samples_block_read + 1) % numBuffers;
 
     buffs[0] = (void *)samples_buffer[handle].data();
     flags = 0;
