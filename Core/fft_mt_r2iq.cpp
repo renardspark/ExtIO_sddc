@@ -104,14 +104,14 @@ fft_mt_r2iq::~fft_mt_r2iq()
 
 float fft_mt_r2iq::setFreqOffset(float offset)
 {
-	TRACE("%f", offset);
+	TracePrintln(TAG, "%f", offset);
 
 	// Round to nearest multiple of 4 bins for better performance with SIMD operations
 	this->center_frequency_bin = int(offset * BASE_FFT_HALF_SIZE / 4) * 4;
 
 	float delta = ((float)this->center_frequency_bin  / BASE_FFT_HALF_SIZE) - offset;
 	float ret = delta * getRatio(); // ret increases with higher decimation
-	DebugPrintln(TAG, "Offset = %f, center_frequency_bin = %d, delta = %f (%f)\n", offset, this->center_frequency_bin, delta, ret);
+	DebugPrintln(TAG, "Offset = %f/1, center_frequency_bin = %d/%d, delta = %f (%f)\n", offset, this->center_frequency_bin, BASE_FFT_HALF_SIZE, delta, ret);
 	return ret;
 }
 
@@ -147,12 +147,16 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 	TracePrintln(TAG, "%f, %p, %p", gain, input, obuffers);
 	DebugPrintln(TAG, "Initialization...");
 
+	DebugPrintln(TAG, "Full FFT size : %d", BASE_FFT_SIZE);
+	DebugPrintln(TAG, "FFT size without scrap : %d", BASE_FFT_SIZE - BASE_FFT_SCRAP_SIZE);
+	DebugPrintln(TAG, "FFT scrap size : %d", BASE_FFT_SCRAP_SIZE);
+
 	this->inputbuffer = input;
 	this->inputbuffer_block_size = input->getBlockSize();
 	DebugPrintln(TAG, "Input block size: %ld", inputbuffer_block_size);
 
 	this->outputbuffer = obuffers;
-	DebugPrintln(TAG, "Output block size: %ld", obuffers->getBlockSize());
+	DebugPrintln(TAG, "Output block size: %d", obuffers->getBlockSize());
 
 	this->GainScale = gain;
 
@@ -162,19 +166,19 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 
 	// number of ffts needed to process one full buffer block
 	// including an overlap with the previous samples (required by the overlap-save method)
-	ffts_per_blocks = inputbuffer_block_size / (BASE_FFT_SIZE * fft_save_proportion) + 1;
+	// Historically there was a "+ 1" here, but it triggers a rather catastrophic memory leak
+	ffts_per_blocks = inputbuffer_block_size / (BASE_FFT_SIZE - BASE_FFT_SCRAP_SIZE);
 	DebugPrintln(TAG, "Number of FFTs per blocks : %d", ffts_per_blocks);
+	DebugPrintln(TAG, "Effective FFT conversion : %ld", ffts_per_blocks * (BASE_FFT_SIZE - BASE_FFT_SCRAP_SIZE));
 
 
 
 	fftwf_import_wisdom_from_filename("wisdom");
 
 	// Get the processor count
-	processor_count = std::thread::hardware_concurrency() - 1;
+	processor_count = std::thread::hardware_concurrency();
 	DebugPrintln(TAG, "Maximum available threads: %d", processor_count);
 
-	if (processor_count == 0)
-		processor_count = 1;
 	if (processor_count > N_MAX_R2IQ_THREADS)
 		processor_count = N_MAX_R2IQ_THREADS;
 
@@ -252,7 +256,7 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 		DebugPrintln(TAG, "Generated %d IFFT plans", NDECIDX);
 	}
 
-	DebugPrintln(TAG, "Initialization done !");
+	DebugPrintln(TAG, "Initialization done");
 }
 
 #ifdef _WIN32
