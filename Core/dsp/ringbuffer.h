@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../config.h"
 #include <thread>
 #include <mutex>
 #include <condition_variable>
@@ -7,6 +8,8 @@
 const int default_count = 64;
 const int spin_count = 100;
 #define ALIGN (8)
+
+#define TAG "ringbuffer"
 
 class ringbufferbase {
 public:
@@ -141,33 +144,43 @@ public:
         ringbufferbase(count), block_size(0)
     {
         buffers = new TPtr[max_count];
-        buffers[0] = nullptr;
+        raw_buffer = nullptr;
     }
 
     ~ringbuffer()
     {
-        if (buffers[0])
-            delete[] buffers[0];
+        TracePrintln(TAG, "");
+
+        Stop();
+
+        if (raw_buffer)
+            delete[] raw_buffer;
+        // In the event of the destructor being called twice by another part of the code,
+        // The raw_buffer goes back to nullptr to avoid a double free
+        raw_buffer = nullptr;
 
         delete[] buffers;
     }
 
     void setBlockSize(int size)
     {
+        TracePrintln(TAG, "");
+
         if (block_size != size)
         {
             block_size = size;
 
-            if (buffers[0])
-                delete[] buffers[0];
+            if (raw_buffer)
+                delete[] raw_buffer;
 
             int aligned_block_size = (block_size + ALIGN - 1) & (~(ALIGN - 1));
 
-            auto data = new T[max_count * aligned_block_size];
+            DebugPrintln(TAG, "New raw buffer size : %d", max_count * aligned_block_size);
+            raw_buffer = new T[max_count * aligned_block_size];
 
             for (int i = 0; i < max_count; ++i)
             {
-                buffers[i] = &data[i * aligned_block_size];
+                buffers[i] = &raw_buffer[i * aligned_block_size];
             }
         }
     }
@@ -200,6 +213,9 @@ public:
 
 private:
     int block_size;
+
+    // This buffer contains all the sub-buffers which are then referenced in buffers
+    T* raw_buffer;
 
     TPtr* buffers;
 };
