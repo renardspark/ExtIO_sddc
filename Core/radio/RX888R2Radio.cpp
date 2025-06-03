@@ -142,7 +142,6 @@ uint32_t RX888R2Radio::GetTunerCarrier_VHF()
 {
     return R828D_IF_CARRIER;
 }
-
 sddc_err_t RX888R2Radio::SetLOFreq_VHF(uint32_t freq)
 {
     if(!Fx3->Control(TUNERTUNE, freq))

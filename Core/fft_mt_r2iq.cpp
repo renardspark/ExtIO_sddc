@@ -111,7 +111,7 @@ float fft_mt_r2iq::setFreqOffset(float offset)
 
 	float delta = ((float)this->center_frequency_bin  / BASE_FFT_HALF_SIZE) - offset;
 	float ret = delta * getRatio(); // ret increases with higher decimation
-	DebugPrintln(TAG, "Offset = %f/1, center_frequency_bin = %d/%d, delta = %f (%f)\n", offset, this->center_frequency_bin, BASE_FFT_HALF_SIZE, delta, ret);
+	DebugPrintln(TAG, "Offset = %f/1, center_frequency_bin = %d/%d, delta = %f (%f)", offset, this->center_frequency_bin, BASE_FFT_HALF_SIZE, delta, ret);
 	return ret;
 }
 
