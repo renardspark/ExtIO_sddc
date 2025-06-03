@@ -16,9 +16,9 @@
 #define PRINT_INPUT_RANGE  0
 #define NDECIDX 7  //number of srate
 
-static const int halfFft = FFTN_R_ADC / 2;    // half the size of the first fft at ADC 64Msps real rate (2048)
+static const int BASE_FFT_SCRAP_SIZE = 1024;
 static const int BASE_FFT_SIZE = FFTN_R_ADC;
-static const int BASE_FFT_HALF_SIZE = FFTN_R_ADC / 2;
+static const int BASE_FFT_HALF_SIZE = BASE_FFT_SIZE / 2;
 
 struct r2iqThreadArg;
 
@@ -130,11 +130,6 @@ private:
 
     // number of ffts needed to process one block of the input buffer
     int ffts_per_blocks = 0;
-
-    // Proportion of samples (between 0 and 1) to discard for each overlap-save operation
-    int fft_scrap_proportion = 0;
-    // Proportion of samples (between 0 and 1) to save for each overlap-save operation
-    int fft_save_proportion  = 0;
 
     int bufIdx;         // index to next buffer to be processed
     r2iqThreadArg* lastThread;

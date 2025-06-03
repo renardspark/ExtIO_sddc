@@ -40,7 +40,7 @@ fft_mt_r2iq::fft_mt_r2iq() :
 		decimation_ratio[i] = decimation_ratio[i - 1] * 2;
 	}
 
-	fft_size_per_decimation[0] = halfFft;
+	fft_size_per_decimation[0] = BASE_FFT_HALF_SIZE;
 	for (int i = 1; i < NDECIDX; i++)
 	{
 		fft_size_per_decimation[i] = fft_size_per_decimation[i - 1] / 2;
@@ -160,10 +160,6 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 
 	this->GainScale = gain;
 
-	fft_scrap_proportion = 0.25;
-	fft_save_proportion = 1-fft_scrap_proportion;
-
-
 	// number of ffts needed to process one full buffer block
 	// including an overlap with the previous samples (required by the overlap-save method)
 	// Historically there was a "+ 1" here, but it triggers a rather catastrophic memory leak
@@ -194,15 +190,15 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 
 		   // filters
 		fftwf_complex *pfilterht;       // time filter ht
-		pfilterht = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*halfFft);     // halfFft
+		pfilterht = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*BASE_FFT_HALF_SIZE);
 		filterHw = (fftwf_complex**)fftwf_malloc(sizeof(fftwf_complex*)*NDECIDX);
 		for (int d = 0; d < NDECIDX; d++)
 		{
-			filterHw[d] = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*halfFft);     // halfFft
+			filterHw[d] = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*BASE_FFT_HALF_SIZE);
 		}
 
-		filterplan_t2f_c2c = fftwf_plan_dft_1d(halfFft, pfilterht, filterHw[0], FFTW_FORWARD, FFTW_MEASURE);
-		float *pht = new float[halfFft / 4 + 1];
+		filterplan_t2f_c2c = fftwf_plan_dft_1d(BASE_FFT_HALF_SIZE, pfilterht, filterHw[0], FFTW_FORWARD, FFTW_MEASURE);
+		float *pht = new float[BASE_FFT_HALF_SIZE / 4 + 1];
 		const float Astop = 120.0f;
 		const float relPass = 0.85f;  // 85% of Nyquist should be usable
 		const float relStop = 1.1f;   // 'some' alias back into transition band is OK
@@ -212,18 +208,18 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 			//   to allow same stopband-attenuation for all decimations
 			float Bw = 64.0f / decimation_ratio[d];
 			// Bw *= 0.8f;  // easily visualize Kaiser filter's response
-			KaiserWindow(halfFft / 4 + 1, Astop, relPass * Bw / 128.0f, relStop * Bw / 128.0f, pht);
+			KaiserWindow(BASE_FFT_HALF_SIZE / 4 + 1, Astop, relPass * Bw / 128.0f, relStop * Bw / 128.0f, pht);
 
 			float gainadj = gain * 2048.0f / (float)FFTN_R_ADC; // reference is FFTN_R_ADC == 2048
 
-			for (int t = 0; t < halfFft; t++)
+			for (int t = 0; t < BASE_FFT_HALF_SIZE; t++)
 			{
 				pfilterht[t][0] = pfilterht[t][1]= 0.0F;
 			}
 		
-			for (int t = 0; t < (halfFft/4+1); t++)
+			for (int t = 0; t < (BASE_FFT_HALF_SIZE/4+1); t++)
 			{
-				pfilterht[halfFft-1-t][0] = gainadj * pht[t];
+				pfilterht[BASE_FFT_HALF_SIZE-1-t][0] = gainadj * pht[t];
 			}
 
 			fftwf_execute_dft(filterplan_t2f_c2c, pfilterht, filterHw[d]);
@@ -238,10 +234,10 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 
 			// Buffer containing real samples of one block converted to float
 			// plus a scrap portion from the previous block for the overlap-save
-			th->ADCinTime = (float*)fftwf_malloc((inputbuffer_block_size + (BASE_FFT_SIZE * fft_scrap_proportion)) * sizeof(float));
+			th->ADCinTime = (float*)fftwf_malloc((inputbuffer_block_size + BASE_FFT_SCRAP_SIZE) * sizeof(float));
 
 			th->ADCinFreq = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(BASE_FFT_HALF_SIZE + 1)); // 1024+1
-			th->inFreqTmp = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(halfFft));    // 1024
+			th->inFreqTmp = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(BASE_FFT_HALF_SIZE));    // 1024
 		}
 		DebugPrintln(TAG, "Generated arguments sets for the threads");
 
