@@ -308,10 +308,15 @@ sddc_err_t RadioHandler::SetRFMode(sddc_rf_mode_t mode)
 	return ERR_SUCCESS;
 }
 
-vector<float> RadioHandler::GetAttenuationSteps()
+vector<float> RadioHandler::GetRFGainSteps(sddc_rf_mode_t mode)
 {
-	TracePrintln(TAG, "");
-	switch(hardware->GetRFMode())
+	TracePrintln(TAG, "%d", mode);
+
+	// NOMODE: Take the range corresponding to the current mode
+	if(mode == NOMODE)
+		mode = hardware->GetRFMode();
+
+	switch(mode)
 	{
 		case HFMODE:
 			return hardware->GetRFSteps_HF();
@@ -321,20 +326,24 @@ vector<float> RadioHandler::GetAttenuationSteps()
 			return vector<float>();
 	}
 }
-array<float, 2> RadioHandler::GetAttenuationRange()
+array<float, 2> RadioHandler::GetRFGainRange(sddc_rf_mode_t mode)
 {
-	TracePrintln(TAG, "");
+	TracePrintln(TAG, "%d", mode);
 	
-	vector<float> att_steps = GetAttenuationSteps();
-	DebugPrintln(TAG, "Attenuation : min=%f, max=%f", att_steps.front(), att_steps.back());
-	return array<float, 2>{att_steps.front(), att_steps.back()};
+	vector<float> gain_steps = GetRFGainSteps(mode);
+	DebugPrintln(TAG, "RF gain for mode %d: min=%f, max=%f", mode, gain_steps.front(), gain_steps.back());
+	return array<float, 2>{gain_steps.front(), gain_steps.back()};
 }
-float RadioHandler::GetAttenuation()
+float RadioHandler::GetRFGain(sddc_rf_mode_t mode)
 {
-	TracePrintln(TAG, "");
+	TracePrintln(TAG, "%d", mode);
+
+	// NOMODE: Take the range corresponding to the current mode
+	if(mode == NOMODE)
+		mode = hardware->GetRFMode();
 
 	int step = 0;
-	switch(hardware->GetRFMode())
+	switch(mode)
 	{
 		case HFMODE:
 			step = hardware->GetRF_HF();
@@ -346,56 +355,68 @@ float RadioHandler::GetAttenuation()
 			return 0;
 	}
 
-	vector<float> att_steps = GetAttenuationSteps();
+	vector<float> gain_steps = GetRFGainSteps(mode);
 
-	if(step >= 0 && step < att_steps.size())
+	if(step >= 0 && step < gain_steps.size())
 	{
-		DebugPrintln(TAG, "Attenuation = %f, step = %d", att_steps[step], step);
-		return att_steps[step];
+		DebugPrintln(TAG, "Attenuation for mode %d = %f, step = %d", mode, gain_steps[step], step);
+		return gain_steps[step];
 	}
 
 	return 0;
 }
-sddc_err_t RadioHandler::SetAttenuation(float new_att)
+sddc_err_t RadioHandler::SetRFGain(float new_att, sddc_rf_mode_t mode)
 {
-	vector<float> att_steps = GetAttenuationSteps();
+	TracePrintln(TAG, "%f, %d", new_att, mode);
 
-	if(att_steps.empty())
+	// NOMODE: Take the range corresponding to the current mode
+	if(mode == NOMODE)
+		mode = hardware->GetRFMode();
+
+	vector<float> gain_steps = GetRFGainSteps(mode);
+
+	if(gain_steps.empty())
 		return ERR_NOT_COMPATIBLE;
 
-	if(new_att <= att_steps.front())
-		new_att = att_steps.front();
+	if(new_att <= gain_steps.front())
+		new_att = gain_steps.front();
 
-	if(new_att >= att_steps.back())
-		new_att = att_steps.back();
+	if(new_att >= gain_steps.back())
+		new_att = gain_steps.back();
 
 	int step = 0;
-	for (size_t i = 1; i < att_steps.size(); i++) {
-        if(att_steps[i - 1] <= new_att && att_steps[i] >= new_att)
+	for (size_t i = 1; i < gain_steps.size(); i++) {
+        if(gain_steps[i - 1] <= new_att && gain_steps[i] >= new_att)
         {
-            float gain_middle = (att_steps[i] - att_steps[i - 1]) / 2;
-            float value_relative = (new_att - att_steps[i - 1]);
+            float gain_middle = (gain_steps[i] - gain_steps[i - 1]) / 2;
+            float value_relative = (new_att - gain_steps[i - 1]);
             step = (value_relative > gain_middle) ? i : i - 1;
             break;
         }
     }
 
-	switch(hardware->GetRFMode())
+	switch(mode)
 	{
 		case HFMODE:
-			DebugPrintln(TAG, "HF gain = %f, step = %d", att_steps[step], step);
+			DebugPrintln(TAG, "HF gain = %f, step = %d", gain_steps[step], step);
 			return hardware->SetRFAttenuation_HF(step);
 		case VHFMODE:
-			DebugPrintln(TAG, "VHF gain = %f, step = %d", att_steps[step], step);
+			DebugPrintln(TAG, "VHF gain = %f, step = %d", gain_steps[step], step);
 			return hardware->SetRFAttenuation_HF(step);
 		default:
 			return ERR_NOT_COMPATIBLE;
 	}
 }
 
-vector<float> RadioHandler::GetGainSteps()
+vector<float> RadioHandler::GetIFGainSteps(sddc_rf_mode_t mode)
 {
-	switch(hardware->GetRFMode())
+	TracePrintln(TAG, "%d", mode);
+
+	// NOMODE: Take the range corresponding to the current mode
+	if(mode == NOMODE)
+		mode = hardware->GetRFMode();
+
+	switch(mode)
 	{
 		case HFMODE:
 			return hardware->GetIFSteps_HF();
@@ -405,20 +426,24 @@ vector<float> RadioHandler::GetGainSteps()
 			return vector<float>();
 	}
 }
-array<float, 2> RadioHandler::GetGainRange()
+array<float, 2> RadioHandler::GetIFGainRange(sddc_rf_mode_t mode)
 {
-	TracePrintln(TAG, "");
+	TracePrintln(TAG, "%d", mode);
 	
-	vector<float> gain_steps = GetGainSteps();
-	DebugPrintln(TAG, "Gain : min=%f, max=%f", gain_steps.front(), gain_steps.back());
+	vector<float> gain_steps = GetIFGainSteps(mode);
+	DebugPrintln(TAG, "IF gain for mode %d : min=%f, max=%f", mode, gain_steps.front(), gain_steps.back());
 	return array<float, 2>{gain_steps.front(), gain_steps.back()};
 }
-float RadioHandler::GetGain()
+float RadioHandler::GetIFGain(sddc_rf_mode_t mode)
 {
-	TracePrintln(TAG, "");
+	TracePrintln(TAG, "%d", mode);
+
+	// NOMODE: Take the range corresponding to the current mode
+	if(mode == NOMODE)
+		mode = hardware->GetRFMode();
 
 	int step = 0;
-	switch(hardware->GetRFMode())
+	switch(mode)
 	{
 		case HFMODE:
 			step = hardware->GetIF_HF();
@@ -430,7 +455,7 @@ float RadioHandler::GetGain()
 			return 0;
 	}
 
-	vector<float> gain_steps = GetGainSteps();
+	vector<float> gain_steps = GetIFGainSteps(mode);
 
 	if(step >= 0 && step < gain_steps.size())
 	{
@@ -438,11 +463,18 @@ float RadioHandler::GetGain()
 		return gain_steps[step];
 	}
 
+	DebugPrintln(TAG, "IF Gain out of range");
 	return 0;
 }
-sddc_err_t RadioHandler::SetGain(float new_gain)
+sddc_err_t RadioHandler::SetIFGain(float new_gain, sddc_rf_mode_t mode)
 {
-	vector<float> gain_steps = GetGainSteps();
+	TracePrintln(TAG, "%f, %d", new_gain, mode);
+
+	// NOMODE: Take the range corresponding to the current mode
+	if(mode == NOMODE)
+		mode = hardware->GetRFMode();
+
+	vector<float> gain_steps = GetIFGainSteps(mode);
 
 	if(gain_steps.empty())
 		return ERR_NOT_COMPATIBLE;
@@ -464,13 +496,14 @@ sddc_err_t RadioHandler::SetGain(float new_gain)
         }
     }
 
-	switch(hardware->GetRFMode())
+    DebugPrintln(TAG, "IF gain : %f", gain_steps[step]);
+    DebugPrintln(TAG, "IF gain step : %d", step);
+
+	switch(mode)
 	{
 		case HFMODE:
-			DebugPrintln(TAG, "HF gain = %f, step = %d", gain_steps[step], step);
 			return hardware->SetIFGain_HF(step);
 		case VHFMODE:
-			DebugPrintln(TAG, "VHF gain = %f, step = %d", gain_steps[step], step);
 			return hardware->SetIFGain_VHF(step);
 		default:
 			return ERR_NOT_COMPATIBLE;
@@ -523,6 +556,8 @@ sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
 	{
 		return ERR_NOT_COMPATIBLE;
 	}
+
+	DebugPrintln(TAG, "Frequency is off by %.2fHz", fc * (GetADCSampleRate() / 2.0f));
 	
 	if (this->fc != fc)
 	{

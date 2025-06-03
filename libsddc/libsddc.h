@@ -90,10 +90,10 @@ bool		sddc_get_biast_vhf();
 sddc_err_t	sddc_set_biast_vhf(bool new_state);
 
 // --- RF/IF adjustments --- //
-int			sddc_get_attenuation_steps(libsddc_handler_t t, const float** steps);
-sddc_err_t	sddc_set_attenuation(libsddc_handler_t t, int attIndex);
-int			sddc_get_gain_steps(libsddc_handler_t t, const float** steps);
-sddc_err_t	sddc_set_gain(libsddc_handler_t t, int attIndex);
+int			sddc_get_rf_gain_steps(libsddc_handler_t t, const float** steps);
+sddc_err_t	sddc_set_rf_gain(libsddc_handler_t t, float gain);
+int			sddc_get_if_gain_steps(libsddc_handler_t t, const float** steps);
+sddc_err_t	sddc_set_if_gain(libsddc_handler_t t, float gain);
 
 // --- Tuner --- //
 uint32_t	sddc_set_center_frequency(libsddc_handler_t t, uint32_t freq);

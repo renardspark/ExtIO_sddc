@@ -162,7 +162,7 @@ int main(int argc, char **argv)
     goto DONE;
   }
 
-  if (sddc_set_attenuation(sddc, vhf_attenuation) < 0) {
+  if (sddc_set_rf_gain(sddc, vhf_attenuation) < 0) {
     fprintf(stderr, "ERROR - sddc_set_tuner_rf_attenuation() failed\n");
     goto DONE;
   }

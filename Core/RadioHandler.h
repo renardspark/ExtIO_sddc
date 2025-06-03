@@ -84,14 +84,15 @@ public:
 	sddc_err_t	SetBiasT_VHF(bool new_state);
 
 	// --- RF/IF adjustments --- //
-	vector<float>   GetAttenuationSteps();
-	array<float, 2> GetAttenuationRange();
-	float           GetAttenuation();
-	sddc_err_t      SetAttenuation(float new_att);
-	vector<float>   GetGainSteps();
-	array<float, 2> GetGainRange();
-	float           GetGain();
-	sddc_err_t      SetGain(float new_gain);
+	vector<float>   GetRFGainSteps(sddc_rf_mode_t mode = NOMODE);
+	array<float, 2> GetRFGainRange(sddc_rf_mode_t mode = NOMODE);
+	float           GetRFGain(sddc_rf_mode_t mode = NOMODE);
+	sddc_err_t      SetRFGain(float new_att, sddc_rf_mode_t mode = NOMODE);
+
+	vector<float>   GetIFGainSteps(sddc_rf_mode_t mode = NOMODE);
+	array<float, 2> GetIFGainRange(sddc_rf_mode_t mode = NOMODE);
+	float           GetIFGain(sddc_rf_mode_t mode = NOMODE);
+	sddc_err_t      SetIFGain(float new_gain, sddc_rf_mode_t mode = NOMODE);
 
 	// --- Misc --- //
 	bool		GetDither();

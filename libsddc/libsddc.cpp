@@ -200,30 +200,30 @@ sddc_err_t sddc_set_decimation(libsddc_handler_t t, uint8_t decimate)
 }
 
 
-int sddc_get_attenuation_steps(libsddc_handler_t t, const float** s)
+int sddc_get_rf_gain_steps(libsddc_handler_t t, const float** s)
 {
-	vector<float> steps = t->radio_handler->GetAttenuationSteps();
+	vector<float> steps = t->radio_handler->GetRFGainSteps();
 
 	*s = (const float*)malloc(steps.size() * sizeof(float));
 	memcpy(s, steps.data(), steps.size() * sizeof(float));
 
 	return steps.size();
 }
-sddc_err_t sddc_set_attenuation(libsddc_handler_t t, int attIndex)
+sddc_err_t sddc_set_rf_gain(libsddc_handler_t t, float gain)
 {
-	return t->radio_handler->SetAttenuation(attIndex);
+	return t->radio_handler->SetRFGain(gain);
 }
 
-int sddc_get_gain_steps(libsddc_handler_t t, const float** s)
+int sddc_get_if_gain_steps(libsddc_handler_t t, const float** s)
 {
-	vector<float> steps = t->radio_handler->GetGainSteps();
+	vector<float> steps = t->radio_handler->GetIFGainSteps();
 
 	*s = (const float*)malloc(steps.size() * sizeof(float));
 	memcpy(s, steps.data(), steps.size() * sizeof(float));
 
 	return steps.size();
 }
-sddc_err_t sddc_set_gain(libsddc_handler_t t, int attIndex)
+sddc_err_t sddc_set_if_gain(libsddc_handler_t t, float gain)
 {
-	return t->radio_handler->SetGain(attIndex);
+	return t->radio_handler->SetIFGain(gain);
 }
