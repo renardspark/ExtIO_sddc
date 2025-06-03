@@ -174,6 +174,8 @@ sddc_err_t RadioHandler::Init(uint8_t dev_index)
 
 RadioHandler::~RadioHandler()
 {
+	TracePrintln(TAG, "");
+	
 	delete stateFineTune;
 	delete hardware;
 	delete fx3;
@@ -477,6 +479,8 @@ sddc_err_t RadioHandler::SetGain(float new_gain)
 
 uint32_t RadioHandler::GetCenterFrequency()
 {
+	TracePrintln(TAG, "");
+
 	switch(hardware->GetRFMode())
 	{
 		case HFMODE:
@@ -489,6 +493,8 @@ uint32_t RadioHandler::GetCenterFrequency()
 }
 sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
 {
+	TracePrintln(TAG, "%d", wishedFreq);
+
 	float fc = 0;
 
 	if(hardware->GetRFMode() == HFMODE)
@@ -588,6 +594,8 @@ void RadioHandler::CaculateStats()
 
 sddc_err_t RadioHandler::SetRand(bool new_state)
 {
+	TracePrintln(TAG, "%s", new_state ? "true" : "false");
+
 	r2iqCntrl->SetRand(new_state);
 	return hardware->SetRand(new_state);
 };
