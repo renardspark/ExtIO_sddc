@@ -240,7 +240,6 @@ sddc_err_t RadioHandler::Start(bool convert_r2iq)
 	if(ret != ERR_SUCCESS) return ret;
 
 	streamRunning = true;
-	count = 0;
 
 	// SDR starts sending frames
 	ret = hardware->StartStream();

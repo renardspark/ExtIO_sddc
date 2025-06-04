@@ -6,6 +6,8 @@
 #include <SoapySDR/Types.hpp>
 #include <SoapySDR/Time.hpp>
 
+using namespace std;
+
 
 const char TAG[] = "SoapySDDC_Settings";
 
@@ -75,10 +77,10 @@ SoapySDR::Kwargs SoapySDDC::getHardwareInfo(void) const
     // this also gets printed in --probe
     SoapySDR::Kwargs args;
 
+    args["index"] = std::to_string(deviceId);
     args["name"] = string(radio_handler->getHardwareName());
     args["author"] = "RenardSpark";
     args["origin"] = "https://github.com/renardspark/SDDC_Driver";
-    args["index"] = std::to_string(deviceId);
 
     return args;
 }

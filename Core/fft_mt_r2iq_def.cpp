@@ -163,7 +163,7 @@ void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
 
                     // Pad with zeroes if needed
                     if(fft_output_half_size != upper_frequencies_len)
-                        memset(th->inFreqTmp[upper_frequencies_len], 0, (fft_output_half_size - upper_frequencies_len) * sizeof(fftwf_complex));
+                        memset(&th->inFreqTmp[upper_frequencies_len], 0, (fft_output_half_size - upper_frequencies_len) * sizeof(fftwf_complex));
 
                     // circular shift tune fs/2 second half array
                     shift_freq(
@@ -175,7 +175,7 @@ void * fft_mt_r2iq::r2iqThreadf_def(r2iqThreadArg *th)
                     );
 
                     if (lower_frequencies_start != 0)
-                        memset(th->inFreqTmp[fft_output_half_size], 0, lower_frequencies_start * sizeof(fftwf_complex));
+                        memset(&th->inFreqTmp[fft_output_half_size], 0, lower_frequencies_start * sizeof(fftwf_complex));
                 }
                 // result now in th->inFreqTmp[]
                 // Size: fft_output_size (depending on the decimation)

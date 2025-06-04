@@ -69,18 +69,12 @@ public:
 	sddc_err_t		SetRFMode(sddc_rf_mode_t mode);
 
 	// --- ADC --- //
-	uint32_t	GetADCSampleRate();
-	sddc_err_t	SetADCSampleRate(uint32_t samplefreq);
+	uint32_t	    GetADCSampleRate();
+	sddc_err_t	    SetADCSampleRate(uint32_t samplefreq);
 
 	// --- Tuner --- //
-	uint32_t    GetCenterFrequency();
-    sddc_err_t  SetCenterFrequency(uint32_t freq);
-
-	// --- Bias tee --- //
-	bool		GetBiasT_HF ();
-	sddc_err_t	SetBiasT_HF (bool new_state);
-	bool		GetBiasT_VHF();
-	sddc_err_t	SetBiasT_VHF(bool new_state);
+	uint32_t        GetCenterFrequency();
+    sddc_err_t      SetCenterFrequency(uint32_t freq);
 
 	// --- RF/IF adjustments --- //
 	vector<float>   GetRFGainSteps(sddc_rf_mode_t mode = NOMODE);
@@ -94,6 +88,10 @@ public:
 	sddc_err_t      SetIFGain(float new_gain);
 
 	// --- Misc --- //
+	bool		GetBiasT_HF ();
+	sddc_err_t	SetBiasT_HF (bool new_state);
+	bool		GetBiasT_VHF();
+	sddc_err_t	SetBiasT_VHF(bool new_state);
 	bool		GetDither();
 	sddc_err_t	SetDither(bool new_state);
 	bool		GetPGA();
@@ -143,7 +141,6 @@ private:
 	bool (*GetConsoleIn)(char* buf, int maxlen);
 
 	bool streamRunning = false;
-	unsigned long count;    // absolute index
 
 	RadioModel devModel;
 	uint16_t devFirmware;

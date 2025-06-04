@@ -31,6 +31,8 @@
 #define HIGH_GAIN_RATIO (0.409f)
 #define LOW_GAIN_RATIO (0.059f)
 
+const char TAG[] = "RX888R2Radio";
+
 const vector<float> RX888R2Radio::rf_steps_vhf = {
     0.0f, 0.9f, 1.4f, 2.7f, 3.7f, 7.7f, 8.7f, 12.5f, 14.4f, 15.7f,
     16.6f, 19.7f, 20.7f, 22.9f, 25.4f, 28.0f, 29.7f, 32.8f,
@@ -78,6 +80,9 @@ sddc_err_t RX888R2Radio::SetRFMode(sddc_rf_mode_t mode)
 
         // disable HF by setting max ATT
         sddc_err_t ret = SetRFAttenuation_HF(0); // max att 0 -> -31.5 dB
+        if(ret != ERR_SUCCESS) return ret;
+
+        ret = SetIFGain_HF(0);
         if(ret != ERR_SUCCESS) return ret;
 
         // switch to VHF Attenna

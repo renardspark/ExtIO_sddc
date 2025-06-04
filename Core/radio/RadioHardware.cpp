@@ -19,8 +19,9 @@
  */
 
 #include "RadioHardware.h"
-
 #include <cstdio>
+
+const char TAG[] = "RadioHardware";
 
 sddc_rf_mode_t RadioHardware::GetRFMode()
 {
