@@ -599,9 +599,16 @@ void RadioHandler::CaculateStats()
 				int len = strlen((char*)debdata);
 				if (len > MAXLEN_D_USB - 1) len = MAXLEN_D_USB - 1;
 				debdata[len] = 0;
-				if ((len > 0)&&(DbgPrintFX3 != nullptr))
+
+				if(len > 0)
 				{
-					DbgPrintFX3("%s", (char*)debdata);
+					DebugPrintln(TAG, "HW: %s", debdata);
+
+					if(DbgPrintFX3 != nullptr)
+					{
+						DbgPrintFX3("%s", (char*)debdata);
+					}
+
 					memset(debdata, 0, sizeof(debdata));
 				}
 			}

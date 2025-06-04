@@ -155,8 +155,6 @@ bool fx3handler::ReadDebugTrace(uint8_t *pdata, uint8_t len)
 {
     TracePrintln(TAG, "%p, %d", pdata, len);
 
-    //TODO : This doesn't work
-    return true;
     return usb_device_control(this->dev, READINFODEBUG, pdata[0], 0, (uint8_t *)pdata, len, 1) == 0;
 }
 

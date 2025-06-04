@@ -373,7 +373,9 @@ int usb_device_control(usb_device_t *this, uint8_t request, uint16_t value,
       ret = libusb_control_transfer(this->dev_handle, bmReadRequestType,
                                     request, value, index, data, length,
                                     timeout);
-      if (ret < 0) {
+      // LIBUSB_ERROR_PIPE indicates that the device voluntarily closed
+      // the connection, hence not an error
+      if (ret < 0 && ret != LIBUSB_ERROR_PIPE) {
         log_usb_error(ret, __func__, __FILE__, __LINE__);
         return -1;
       }
