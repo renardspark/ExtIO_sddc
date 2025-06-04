@@ -34,7 +34,7 @@ fft_mt_r2iq::fft_mt_r2iq() :
 
 	// --- Decimation --- //
 	decimation = 0;
-	decimation_ratio[0] = 1;  // 1,2,4,8,16
+	decimation_ratio[0] = 1; // 1,2,4,8,16
 	for (int i = 1; i < NDECIDX; i++)
 	{
 		decimation_ratio[i] = decimation_ratio[i - 1] * 2;
@@ -183,12 +183,7 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 	{
 		fftwf_plan filterplan_t2f_c2c; // time to frequency fft
 
-		
-
-
-		DbgPrintf("RandTable generated");
-
-		   // filters
+		// filters
 		fftwf_complex *pfilterht;       // time filter ht
 		pfilterht = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*BASE_FFT_HALF_SIZE);
 		filterHw = (fftwf_complex**)fftwf_malloc(sizeof(fftwf_complex*)*NDECIDX);
@@ -228,6 +223,8 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 		fftwf_destroy_plan(filterplan_t2f_c2c);
 		fftwf_free(pfilterht);
 
+		DebugPrintln(TAG, "Generated filters");
+
 		for (unsigned t = 0; t < processor_count; t++) {
 			r2iqThreadArg *th = new r2iqThreadArg();
 			threadArgs[t] = th;
@@ -239,7 +236,7 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 			th->ADCinFreq = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(BASE_FFT_HALF_SIZE + 1)); // 1024+1
 			th->inFreqTmp = (fftwf_complex*)fftwf_malloc(sizeof(fftwf_complex)*(BASE_FFT_HALF_SIZE));    // 1024
 		}
-		DebugPrintln(TAG, "Generated arguments sets for the threads");
+		DebugPrintln(TAG, "Generated argument sets for the threads");
 
 		plan_time2freq_r2c = fftwf_plan_dft_r2c_1d(/*real_length=*/BASE_FFT_SIZE, /*in=*/threadArgs[0]->ADCinTime, /*out=*/threadArgs[0]->ADCinFreq, /*flags=*/FFTW_MEASURE);
 		DebugPrintln(TAG, "Generated FFTW real to IQ plan");
