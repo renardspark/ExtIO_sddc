@@ -334,16 +334,14 @@ array<float, 2> RadioHandler::GetRFGainRange(sddc_rf_mode_t mode)
 	TracePrintln(TAG, "%d", mode);
 	
 	vector<float> gain_steps = GetRFGainSteps(mode);
-	DebugPrintln(TAG, "RF gain for mode %d: min=%f, max=%f", mode, gain_steps.front(), gain_steps.back());
+	DebugPrintln(TAG, "RF gain range for mode %d: min=%f, max=%f", mode, gain_steps.front(), gain_steps.back());
 	return array<float, 2>{gain_steps.front(), gain_steps.back()};
 }
-float RadioHandler::GetRFGain(sddc_rf_mode_t mode)
+float RadioHandler::GetRFGain()
 {
-	TracePrintln(TAG, "%d", mode);
+	TracePrintln(TAG, "");
 
-	// NOMODE: Take the range corresponding to the current mode
-	if(mode == NOMODE)
-		mode = hardware->GetRFMode();
+	sddc_rf_mode_t mode = hardware->GetRFMode();
 
 	int step = 0;
 	switch(mode)
@@ -362,19 +360,18 @@ float RadioHandler::GetRFGain(sddc_rf_mode_t mode)
 
 	if(step >= 0 && step < gain_steps.size())
 	{
-		DebugPrintln(TAG, "Attenuation for mode %d = %f, step = %d", mode, gain_steps[step], step);
+		DebugPrintln(TAG, "RF gain for mode %d = %f, step = %d", mode, gain_steps[step], step);
 		return gain_steps[step];
 	}
 
+	WarnPrintln(TAG, "Cannot retrieve RF gain: current step out of range");
 	return 0;
 }
-sddc_err_t RadioHandler::SetRFGain(float new_att, sddc_rf_mode_t mode)
+sddc_err_t RadioHandler::SetRFGain(float new_att)
 {
-	TracePrintln(TAG, "%f, %d", new_att, mode);
+	TracePrintln(TAG, "%f", new_att);
 
-	// NOMODE: Take the range corresponding to the current mode
-	if(mode == NOMODE)
-		mode = hardware->GetRFMode();
+	sddc_rf_mode_t mode = hardware->GetRFMode();
 
 	vector<float> gain_steps = GetRFGainSteps(mode);
 
@@ -401,11 +398,11 @@ sddc_err_t RadioHandler::SetRFGain(float new_att, sddc_rf_mode_t mode)
 	switch(mode)
 	{
 		case HFMODE:
-			DebugPrintln(TAG, "HF gain = %f, step = %d", gain_steps[step], step);
+			DebugPrintln(TAG, "Set RF HF gain = %f, step = %d", gain_steps[step], step);
 			return hardware->SetRFAttenuation_HF(step);
 		case VHFMODE:
-			DebugPrintln(TAG, "VHF gain = %f, step = %d", gain_steps[step], step);
-			return hardware->SetRFAttenuation_HF(step);
+			DebugPrintln(TAG, "Set RF VHF gain = %f, step = %d", gain_steps[step], step);
+			return hardware->SetRFAttenuation_VHF(step);
 		default:
 			return ERR_NOT_COMPATIBLE;
 	}
@@ -434,16 +431,14 @@ array<float, 2> RadioHandler::GetIFGainRange(sddc_rf_mode_t mode)
 	TracePrintln(TAG, "%d", mode);
 	
 	vector<float> gain_steps = GetIFGainSteps(mode);
-	DebugPrintln(TAG, "IF gain for mode %d : min=%f, max=%f", mode, gain_steps.front(), gain_steps.back());
+	DebugPrintln(TAG, "IF gain range for mode %d : min=%f, max=%f", mode, gain_steps.front(), gain_steps.back());
 	return array<float, 2>{gain_steps.front(), gain_steps.back()};
 }
-float RadioHandler::GetIFGain(sddc_rf_mode_t mode)
+float RadioHandler::GetIFGain()
 {
-	TracePrintln(TAG, "%d", mode);
+	TracePrintln(TAG, "");
 
-	// NOMODE: Take the range corresponding to the current mode
-	if(mode == NOMODE)
-		mode = hardware->GetRFMode();
+	sddc_rf_mode_t mode = hardware->GetRFMode();
 
 	int step = 0;
 	switch(mode)
@@ -462,20 +457,18 @@ float RadioHandler::GetIFGain(sddc_rf_mode_t mode)
 
 	if(step >= 0 && step < gain_steps.size())
 	{
-		DebugPrintln(TAG, "Gain = %f, step = %d", gain_steps[step], step);
+		DebugPrintln(TAG, "IF gain for mode %d = %f, step = %d", mode, gain_steps[step], step);
 		return gain_steps[step];
 	}
 
-	DebugPrintln(TAG, "IF Gain out of range");
+	WarnPrintln(TAG, "Cannot retrieve IF gain: current step out of range");
 	return 0;
 }
-sddc_err_t RadioHandler::SetIFGain(float new_gain, sddc_rf_mode_t mode)
+sddc_err_t RadioHandler::SetIFGain(float new_gain)
 {
-	TracePrintln(TAG, "%f, %d", new_gain, mode);
+	TracePrintln(TAG, "%f, %d", new_gain);
 
-	// NOMODE: Take the range corresponding to the current mode
-	if(mode == NOMODE)
-		mode = hardware->GetRFMode();
+	sddc_rf_mode_t mode = hardware->GetRFMode();
 
 	vector<float> gain_steps = GetIFGainSteps(mode);
 
@@ -499,8 +492,8 @@ sddc_err_t RadioHandler::SetIFGain(float new_gain, sddc_rf_mode_t mode)
         }
     }
 
-    DebugPrintln(TAG, "IF gain : %f", gain_steps[step]);
-    DebugPrintln(TAG, "IF gain step : %d", step);
+    DebugPrintln(TAG, "New IF gain : %f", gain_steps[step]);
+    DebugPrintln(TAG, "New IF gain step : %d", step);
 
 	switch(mode)
 	{

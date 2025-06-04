@@ -30,6 +30,7 @@
 #include <stdbool.h>
 
 #define _DEBUG  // defined in VS configuration
+#define VERBOSE_WARN
 //#define VERBOSE_TRACE
 //#define VERBOSE_TRACEEXTREME
 
@@ -52,6 +53,14 @@
 #else
 	#define EnterFunction()
 	#define EnterFunction1(v1)
+#endif
+
+#ifdef VERBOSE_WARN
+	#define WarnPrint(tag, fmt, ...)   printf("[SDDC] WARN  - %s: " fmt,      tag, ##__VA_ARGS__)
+	#define WarnPrintln(tag, fmt, ...) printf("[SDDC] WARN  - %s: " fmt "\n", tag, ##__VA_ARGS__)
+#else
+	#define WarnPrint(tag, fmt, ...)
+	#define WarnPrintln(tag, fmt, ...)
 #endif
 
 #ifdef _DEBUG

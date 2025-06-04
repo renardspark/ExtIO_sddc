@@ -206,11 +206,9 @@ std::vector<std::string> SoapySDDC::listGains(const int, const size_t) const
 {
     TracePrintln(TAG, "*, *");
     std::vector<std::string> gains;
-    gains.push_back("HF - RF");
-    gains.push_back("HF - IF");
+    gains.push_back("RF");
+    gains.push_back("IF");
 
-    gains.push_back("VHF - RF");
-    gains.push_back("VHF - IF");
     return gains;
 }
 
@@ -224,35 +222,26 @@ double SoapySDDC::getGain(const int, const size_t, const std::string &name) cons
 {
     TracePrintln(TAG, "*, *, %s", name.c_str());
 
-    if(name == "HF - RF") {
-        return radio_handler->GetRFGain(HFMODE);
+    if(name == "RF") {
+        return radio_handler->GetRFGain();
     }
-    else if(name == "HF - IF") {
-        return radio_handler->GetIFGain(HFMODE);
+    else if(name == "IF") {
+        return radio_handler->GetIFGain();
     }
-    else if(name == "VHF - RF") {
-        return radio_handler->GetRFGain(VHFMODE);
-    }
-    else if(name == "VHF - IF") {
-        return radio_handler->GetIFGain(VHFMODE);
-    }
+
+    WarnPrintln(TAG, "Unknown gain item \"%s\"", name.c_str());
     return 0;
 }
 void SoapySDDC::setGain(const int, const size_t, const std::string &name, const double value)
 {
     TracePrintln(TAG, "*, *, %s, %f", name.c_str(), value);
 
-    if (name == "HF - RF") {
-        radio_handler->SetRFGain(value, HFMODE);
+    DebugPrintln(TAG, "New gain for \"%s\": %f", name.c_str(), value);
+    if (name == "RF") {
+        radio_handler->SetRFGain(value);
     }
-    else if(name == "HF - IF") {
-        radio_handler->SetIFGain(value, HFMODE);
-    }
-    else if(name == "VHF - RF") {
-        radio_handler->SetRFGain(value, VHFMODE);
-    }
-    else if(name == "VHF - IF") {
-        radio_handler->SetIFGain(value, VHFMODE);
+    else if(name == "IF") {
+        radio_handler->SetIFGain(value);
     }
 }
 
@@ -260,36 +249,22 @@ SoapySDR::Range SoapySDDC::getGainRange(const int, const size_t, const std::stri
 {
     TracePrintln(TAG, "*, *, %s", name.c_str());
 
-    if (name == "HF - RF") {
+    if (name == "RF") {
         array<float, 2> gain_range = radio_handler->GetRFGainRange(HFMODE);
+        array<float, 2> gain_range_vhf = radio_handler->GetRFGainRange(VHFMODE);
 
         return SoapySDR::Range(
-            gain_range.front(),
-            gain_range.back()
+            min(gain_range.front(), gain_range_vhf.front()),
+            max(gain_range.back(), gain_range_vhf.back())
         );
     }
-    else if (name == "HF - IF") {
+    else if (name == "IF") {
         array<float, 2> gain_range = radio_handler->GetIFGainRange(HFMODE);
+        array<float, 2> gain_range_vhf = radio_handler->GetIFGainRange(VHFMODE);
 
         return SoapySDR::Range(
-            gain_range.front(),
-            gain_range.back()
-        );
-    }
-    else if (name == "VHF - RF") {
-        array<float, 2> gain_range = radio_handler->GetRFGainRange(VHFMODE);
-
-        return SoapySDR::Range(
-            gain_range.front(),
-            gain_range.back()
-        );
-    }
-    else if (name == "VHF - IF") {
-        array<float, 2> gain_range = radio_handler->GetIFGainRange(VHFMODE);
-
-        return SoapySDR::Range(
-            gain_range.front(),
-            gain_range.back()
+            min(gain_range.front(), gain_range_vhf.front()),
+            max(gain_range.back(), gain_range_vhf.back())
         );
     }
     
