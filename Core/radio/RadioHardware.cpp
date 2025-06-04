@@ -125,11 +125,11 @@ sddc_err_t RadioHardware::SetBiasT_VHF(bool new_state)
 // ----- //
 
 // ----- Tuner ----- //
-uint32_t RadioHardware::GetLOFreq_HF()
+uint32_t RadioHardware::GetCenterFrequency_HF()
 {
     return freqLO_HF;
 }
-uint32_t RadioHardware::GetLOFreq_VHF()
+uint32_t RadioHardware::GetCenterFrequency_VHF()
 {
     return freqLO_VHF;
 }

@@ -91,19 +91,19 @@ sddc_err_t RX999Radio::SetRFAttenuation_VHF(uint16_t)
     return ERR_NOT_COMPATIBLE;
 }
 
-uint32_t RX999Radio::GetTunerCarrier_HF()
+uint32_t RX999Radio::GetTunerFrequency_HF()
 {
-    return 0;
+    return freqLO_HF;
 }
-sddc_err_t RX999Radio::SetLOFreq_HF(uint32_t freq)
+sddc_err_t RX999Radio::SetCenterFrequency_HF(uint32_t freq)
 {
     return ERR_NOT_COMPATIBLE;
 }
-uint32_t RX999Radio::GetTunerCarrier_VHF()
+uint32_t RX999Radio::GetTunerFrequency_VHF()
 {
     return IF_FREQ;
 }
-sddc_err_t RX999Radio::SetLOFreq_VHF(uint32_t freq)
+sddc_err_t RX999Radio::SetCenterFrequency_VHF(uint32_t freq)
 {
     int sel;
     // set preselector
@@ -123,7 +123,6 @@ sddc_err_t RX999Radio::SetLOFreq_VHF(uint32_t freq)
         return ERR_FX3_TRANSFER_FAILED;
 
     freqLO_VHF = freq;
-    // Set VCXO
     return ERR_SUCCESS;
 }
 

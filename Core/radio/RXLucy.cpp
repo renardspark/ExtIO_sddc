@@ -95,19 +95,19 @@ sddc_err_t RXLucyRadio::SetIFGain_VHF(int att)
     return ERR_NOT_COMPATIBLE;
 }
 
-uint32_t RXLucyRadio::GetTunerCarrier_HF()
+uint32_t RXLucyRadio::GetTunerFrequency_HF()
 {
     return 0;
 }
-sddc_err_t RXLucyRadio::SetLOFreq_HF(uint32_t freq)
+sddc_err_t RXLucyRadio::SetCenterFrequency_HF(uint32_t freq)
 {
     return ERR_NOT_COMPATIBLE;
 }
-uint32_t RXLucyRadio::GetTunerCarrier_VHF()
+uint32_t RXLucyRadio::GetTunerFrequency_VHF()
 {
     return IF_FREQ;
 }
-sddc_err_t RXLucyRadio::SetLOFreq_VHF(uint32_t freq)
+sddc_err_t RXLucyRadio::SetCenterFrequency_VHF(uint32_t freq)
 {
     if(!Fx3->Control(TUNERTUNE, freq + IF_FREQ))
         return ERR_FX3_TRANSFER_FAILED;

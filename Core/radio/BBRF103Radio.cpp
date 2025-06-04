@@ -105,20 +105,20 @@ sddc_err_t BBRF103Radio::SetRFAttenuation_VHF(uint16_t att)
     return Fx3->SetArgument(R82XX_ATTENUATOR, att) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
 }
 
-sddc_err_t BBRF103Radio::SetLOFreq_HF(uint32_t freq)
+sddc_err_t BBRF103Radio::SetCenterFrequency_HF(uint32_t freq)
 {
     return ERR_NOT_COMPATIBLE;
 }
 
-uint32_t BBRF103Radio::GetTunerCarrier_HF()
+uint32_t BBRF103Radio::GetTunerFrequency_HF()
 {
     return 0;
 }
-uint32_t BBRF103Radio::GetTunerCarrier_VHF()
+uint32_t BBRF103Radio::GetTunerFrequency_VHF()
 {
     return R820T2_IF_CARRIER;
 }
-sddc_err_t BBRF103Radio::SetLOFreq_VHF(uint32_t freq)
+sddc_err_t BBRF103Radio::SetCenterFrequency_VHF(uint32_t freq)
 {
     if(!Fx3->Control(TUNERTUNE, freq))
         return ERR_FX3_TRANSFER_FAILED;

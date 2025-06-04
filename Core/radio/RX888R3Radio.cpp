@@ -134,7 +134,7 @@ sddc_err_t RX888R3Radio::SetRFAttenuation_VHF(uint16_t att)
 
 #define M(x) ((x)*1000000)
 
-uint32_t RX888R3Radio::GetTunerCarrier_HF()
+uint32_t RX888R3Radio::GetTunerFrequency_HF()
 {
     if (freqLO_HF < M(64))
         return 0;
@@ -147,7 +147,7 @@ uint32_t RX888R3Radio::GetTunerCarrier_HF()
 
     return 0;
 }
-sddc_err_t RX888R3Radio::SetLOFreq_HF(uint32_t freq)
+sddc_err_t RX888R3Radio::SetCenterFrequency_HF(uint32_t freq)
 {
     // set bpf
     int sel;
@@ -167,11 +167,11 @@ sddc_err_t RX888R3Radio::SetLOFreq_HF(uint32_t freq)
     return ERR_SUCCESS;
 }
 
-uint32_t RX888R3Radio::GetTunerCarrier_VHF()
+uint32_t RX888R3Radio::GetTunerFrequency_VHF()
 {
     return (IF_FREQ - freqLO_VHF_offset);
 }
-sddc_err_t RX888R3Radio::SetLOFreq_VHF(uint32_t freq)
+sddc_err_t RX888R3Radio::SetCenterFrequency_VHF(uint32_t freq)
 {
     uint32_t targetVCO = freq + IF_FREQ;
 

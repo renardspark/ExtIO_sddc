@@ -126,23 +126,22 @@ sddc_err_t RX888R2Radio::SetRFAttenuation_VHF(uint16_t att)
     return Fx3->SetArgument(R82XX_ATTENUATOR, att) ? ERR_SUCCESS : ERR_FX3_TRANSFER_FAILED;
 }
 
-uint32_t RX888R2Radio::GetTunerCarrier_HF()
+uint32_t RX888R2Radio::GetTunerFrequency_HF()
 {
     return freqLO_HF;
 }
-sddc_err_t RX888R2Radio::SetLOFreq_HF(uint32_t freq)
+sddc_err_t RX888R2Radio::SetCenterFrequency_HF(uint32_t freq)
 {
     freqLO_HF = freq;
-
     return ERR_SUCCESS;
 }
 
 
-uint32_t RX888R2Radio::GetTunerCarrier_VHF()
+uint32_t RX888R2Radio::GetTunerFrequency_VHF()
 {
     return R828D_IF_CARRIER;
 }
-sddc_err_t RX888R2Radio::SetLOFreq_VHF(uint32_t freq)
+sddc_err_t RX888R2Radio::SetCenterFrequency_VHF(uint32_t freq)
 {
     if(!Fx3->Control(TUNERTUNE, freq))
         return ERR_FX3_TRANSFER_FAILED;

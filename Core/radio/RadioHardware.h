@@ -54,8 +54,8 @@ class RadioHardware {
         uint16_t GetIF_VHF();
 
         // --- Tuner --- //
-        uint32_t    GetLOFreq_HF ();
-        uint32_t    GetLOFreq_VHF();
+        uint32_t    GetCenterFrequency_HF ();
+        uint32_t    GetCenterFrequency_VHF();
 
         // --- Misc --- //
         bool        GetDither();
@@ -82,10 +82,10 @@ class RadioHardware {
         virtual float getGain() = 0;
 
         // --- Tuner --- //
-        virtual sddc_err_t  SetLOFreq_HF (uint32_t freq) = 0;
-        virtual sddc_err_t  SetLOFreq_VHF(uint32_t freq) = 0;
-        virtual uint32_t    GetTunerCarrier_HF() = 0;
-        virtual uint32_t    GetTunerCarrier_VHF() = 0;
+        virtual sddc_err_t  SetCenterFrequency_HF (uint32_t freq) = 0;
+        virtual sddc_err_t  SetCenterFrequency_VHF(uint32_t freq) = 0;
+        virtual uint32_t    GetTunerFrequency_HF() = 0;
+        virtual uint32_t    GetTunerFrequency_VHF() = 0;
 
         // --- RF settings --- //
         virtual vector<float> GetRFSteps_HF () = 0;
@@ -130,10 +130,10 @@ class BBRF103Radio : public RadioHardware {
         float getGain() override { return BBRF103_GAINFACTOR; }
 
         // --- Tuner --- //
-        sddc_err_t  SetLOFreq_HF (uint32_t freq) override;
-        sddc_err_t  SetLOFreq_VHF(uint32_t freq) override;
-        uint32_t    GetTunerCarrier_HF() override;
-        uint32_t    GetTunerCarrier_VHF() override;
+        sddc_err_t  SetCenterFrequency_HF (uint32_t freq) override;
+        sddc_err_t  SetCenterFrequency_VHF(uint32_t freq) override;
+        uint32_t    GetTunerFrequency_HF() override;
+        uint32_t    GetTunerFrequency_VHF() override;
 
         // --- RF settings --- //
         sddc_rf_mode_t GetBestRFMode(uint64_t freq) override;
@@ -168,10 +168,10 @@ class RX888R2Radio : public RadioHardware {
         const char* GetName() override { return "RX888 mkII"; }
         float getGain() override { return RX888mk2_GAINFACTOR; }
         
-        sddc_err_t  SetLOFreq_HF (uint32_t freq) override;
-        sddc_err_t  SetLOFreq_VHF(uint32_t freq) override;
-        uint32_t    GetTunerCarrier_HF() override;
-        uint32_t    GetTunerCarrier_VHF() override;
+        sddc_err_t  SetCenterFrequency_HF (uint32_t freq) override;
+        sddc_err_t  SetCenterFrequency_VHF(uint32_t freq) override;
+        uint32_t    GetTunerFrequency_HF() override;
+        uint32_t    GetTunerFrequency_VHF() override;
 
         // --- RF settings --- //
         sddc_rf_mode_t GetBestRFMode(uint64_t freq) override;
@@ -201,10 +201,10 @@ class RX888R3Radio : public RadioHardware {
         float getGain() override { return RX888mk2_GAINFACTOR; }
 
         // --- Tuner --- //
-        sddc_err_t  SetLOFreq_HF (uint32_t freq) override;
-        sddc_err_t  SetLOFreq_VHF(uint32_t freq) override;
-        uint32_t    GetTunerCarrier_HF() override;
-        uint32_t    GetTunerCarrier_VHF() override;
+        sddc_err_t  SetCenterFrequency_HF (uint32_t freq) override;
+        sddc_err_t  SetCenterFrequency_VHF(uint32_t freq) override;
+        uint32_t    GetTunerFrequency_HF() override;
+        uint32_t    GetTunerFrequency_VHF() override;
 
         // --- RF settings --- //
         sddc_rf_mode_t GetBestRFMode(uint64_t freq) override;
@@ -237,10 +237,10 @@ class RX999Radio : public RadioHardware {
         float getGain() override { return RX888_GAINFACTOR; }
 
         // --- Tuner --- //
-        sddc_err_t  SetLOFreq_HF (uint32_t freq) override;
-        sddc_err_t  SetLOFreq_VHF(uint32_t freq) override;
-        uint32_t    GetTunerCarrier_HF() override;
-        uint32_t    GetTunerCarrier_VHF() override;
+        sddc_err_t  SetCenterFrequency_HF (uint32_t freq) override;
+        sddc_err_t  SetCenterFrequency_VHF(uint32_t freq) override;
+        uint32_t    GetTunerFrequency_HF() override;
+        uint32_t    GetTunerFrequency_VHF() override;
 
         // --- RF settings --- //
         sddc_rf_mode_t GetBestRFMode(uint64_t freq) override;
@@ -267,10 +267,10 @@ class HF103Radio : public RadioHardware {
         float getGain() override { return HF103_GAINFACTOR; }
 
         // --- Tuner --- //
-        sddc_err_t  SetLOFreq_HF (uint32_t freq) override;
-        sddc_err_t  SetLOFreq_VHF(uint32_t freq) override;
-        uint32_t    GetTunerCarrier_HF() override;
-        uint32_t    GetTunerCarrier_VHF() override;
+        sddc_err_t  SetCenterFrequency_HF (uint32_t freq) override;
+        sddc_err_t  SetCenterFrequency_VHF(uint32_t freq) override;
+        uint32_t    GetTunerFrequency_HF() override;
+        uint32_t    GetTunerFrequency_VHF() override;
 
         // --- RF settings --- //
         sddc_rf_mode_t GetBestRFMode(uint64_t freq) override;
@@ -298,10 +298,10 @@ class RXLucyRadio : public RadioHardware {
         float getGain() override { return HF103_GAINFACTOR; }
 
         // --- Tuner --- //
-        sddc_err_t  SetLOFreq_HF (uint32_t freq) override;
-        sddc_err_t  SetLOFreq_VHF(uint32_t freq) override;
-        uint32_t    GetTunerCarrier_HF() override;
-        uint32_t    GetTunerCarrier_VHF() override;
+        sddc_err_t  SetCenterFrequency_HF (uint32_t freq) override;
+        sddc_err_t  SetCenterFrequency_VHF(uint32_t freq) override;
+        uint32_t    GetTunerFrequency_HF() override;
+        uint32_t    GetTunerFrequency_VHF() override;
 
         // --- RF settings --- //
         sddc_rf_mode_t GetBestRFMode(uint64_t freq) override;
@@ -331,10 +331,10 @@ public:
     sddc_rf_mode_t GetBestRFMode(uint64_t) override { return HFMODE; }
     sddc_err_t SetRFMode(sddc_rf_mode_t) override { return ERR_SUCCESS; }
 
-    sddc_err_t  SetLOFreq_HF (uint32_t) override { return ERR_SUCCESS; };
-    sddc_err_t  SetLOFreq_VHF(uint32_t) override { return ERR_SUCCESS; };
-    uint32_t    GetTunerCarrier_HF() override { return 0; };
-    uint32_t    GetTunerCarrier_VHF() override { return 0; };
+    sddc_err_t  SetCenterFrequency_HF (uint32_t) override { return ERR_SUCCESS; };
+    sddc_err_t  SetCenterFrequency_VHF(uint32_t) override { return ERR_SUCCESS; };
+    uint32_t    GetTunerFrequency_HF() override { return 0; };
+    uint32_t    GetTunerFrequency_VHF() override { return 0; };
 
     vector<float> GetRFSteps_HF () override { return vector<float>(); };
     vector<float> GetRFSteps_VHF() override { return vector<float>(); };

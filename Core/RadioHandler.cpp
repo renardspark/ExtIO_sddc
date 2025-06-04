@@ -517,9 +517,9 @@ uint32_t RadioHandler::GetCenterFrequency()
 	switch(hardware->GetRFMode())
 	{
 		case HFMODE:
-			return hardware->GetLOFreq_HF();
+			return hardware->GetCenterFrequency_HF();
 		case VHFMODE:
-			return hardware->GetLOFreq_VHF();
+			return hardware->GetCenterFrequency_VHF();
 		default:
 			return 0;
 	}
@@ -532,21 +532,21 @@ sddc_err_t RadioHandler::SetCenterFrequency(uint32_t wishedFreq)
 
 	if(hardware->GetRFMode() == HFMODE)
 	{
-		sddc_err_t ret = hardware->SetLOFreq_HF(wishedFreq);
+		sddc_err_t ret = hardware->SetCenterFrequency_HF(wishedFreq);
 		if(ret != ERR_SUCCESS) return ret;
 
 		// we need shift the samples
-		uint32_t offset = hardware->GetTunerCarrier_HF();
+		uint32_t offset = hardware->GetTunerFrequency_HF();
 		DebugPrintln(TAG, "Tuner frequency is at %dHz", offset);
 		fc = r2iqCntrl->setFreqOffset(offset / (GetADCSampleRate() / 2.0f));
 	}
 	else if(hardware->GetRFMode() == VHFMODE)
 	{
-		sddc_err_t ret = hardware->SetLOFreq_VHF(wishedFreq);
+		sddc_err_t ret = hardware->SetCenterFrequency_VHF(wishedFreq);
 		if(ret != ERR_SUCCESS) return ret;
 
 		// we need shift the samples
-		uint32_t offset = hardware->GetTunerCarrier_VHF();
+		uint32_t offset = hardware->GetTunerFrequency_VHF();
 		DebugPrintln(TAG, "Tuner frequency is at %dHz", offset);
 
 		// sign change with sideband used

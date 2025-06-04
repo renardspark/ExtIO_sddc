@@ -53,19 +53,20 @@ sddc_err_t HF103Radio::SetRFMode(sddc_rf_mode_t mode)
     return ERR_SUCCESS;
 }
 
-sddc_err_t HF103Radio::SetLOFreq_HF(uint32_t)
+sddc_err_t HF103Radio::SetCenterFrequency_HF(uint32_t freq)
+{
+    freqLO_HF = freq;
+    return ERR_SUCCESS;
+}
+uint32_t HF103Radio::GetTunerFrequency_HF()
+{
+    return freqLO_HF;
+}
+sddc_err_t HF103Radio::SetCenterFrequency_VHF(uint32_t)
 {
     return ERR_NOT_COMPATIBLE;
 }
-uint32_t HF103Radio::GetTunerCarrier_HF()
-{
-    return 0;
-}
-sddc_err_t HF103Radio::SetLOFreq_VHF(uint32_t)
-{
-    return ERR_NOT_COMPATIBLE;
-}
-uint32_t HF103Radio::GetTunerCarrier_VHF()
+uint32_t HF103Radio::GetTunerFrequency_VHF()
 {
     return 0;
 }
