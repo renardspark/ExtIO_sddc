@@ -112,7 +112,7 @@ static double clk_diff() {
 
 int main(int argc, char **argv)
 {
-  if (argc < 3) {
+  if (argc < 2) {
     fprintf(stderr, "usage: %s <sample rate> [<runtime_in_ms> [<output_filename>]\n", argv[0]);
     return -1;
   }
@@ -122,11 +122,11 @@ int main(int argc, char **argv)
   double vhf_frequency = 100e6;
   double vhf_attenuation = 20;  /* 20dB attenuation */
 
-  sscanf(argv[2], "%lf", &sample_rate);
-  if (3 < argc)
-    runtime = atoi(argv[3]);
-  if (4 < argc)
-    outfilename = argv[4];
+  sscanf(argv[1], "%lf", &sample_rate);
+  if (argc > 2)
+    runtime = atoi(argv[2]);
+  if (argc > 3)
+    outfilename = argv[3];
 
   if (sample_rate <= 0) {
     fprintf(stderr, "ERROR - given samplerate '%f' should be > 0\n", sample_rate);
