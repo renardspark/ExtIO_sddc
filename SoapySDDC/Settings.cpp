@@ -1,11 +1,13 @@
 #include "SoapySDDC.hpp"
+
+#include <sys/types.h>
+#include <cstdint>
+#include <cstring>
 #include <SoapySDR/Types.hpp>
 #include <SoapySDR/Time.hpp>
-#include <cstdint>
-#include <sys/types.h>
-#include <cstring>
 
-#define TAG "SoapySDDC_Settings"
+
+const char TAG[] = "SoapySDDC_Settings";
 
 static void _Callback(void *context, const sddc_complex_t *data, uint32_t len)
 {

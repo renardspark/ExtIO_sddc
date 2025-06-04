@@ -1,15 +1,19 @@
 #pragma once
 
-#include "../config.h"
 #include <thread>
 #include <mutex>
 #include <condition_variable>
 
-const int default_count = 64;
-const int spin_count = 100;
-#define ALIGN (8)
+#include "../config.h"
 
-#define TAG "ringbuffer"
+namespace {
+    const int default_count = 64;
+    const int spin_count = 100;
+    #define ALIGN (8)
+
+    const char TAG[] = "ringbuffer";
+}
+
 
 class ringbufferbase {
 public:

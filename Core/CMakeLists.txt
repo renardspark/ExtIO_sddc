@@ -6,7 +6,7 @@ else()
     file(GLOB ARCH_SRC "arch/linux/*.c" "arch/linux/*.cpp")
 endif (MSVC)
 
-file(GLOB SRC "*.cpp" "radio/*.cpp" "pffft/*.cpp" ${ARCH_SRC})
+file(GLOB SRC "*.cpp" "radio/*.cpp" "pffft/*.cpp" "dsp/*.cpp" ${ARCH_SRC})
 
 if (MSVC)
     # Assume Windows/x86 target ;)
