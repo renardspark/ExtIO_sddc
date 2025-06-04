@@ -10,8 +10,6 @@ namespace {
     const int default_count = 64;
     const int spin_count = 100;
     #define ALIGN (8)
-
-    const char TAG[] = "ringbuffer";
 }
 
 
@@ -153,7 +151,7 @@ public:
 
     ~ringbuffer()
     {
-        TracePrintln(TAG, "");
+        TracePrintln("ringbuffer", "");
 
         Stop();
 
@@ -168,7 +166,7 @@ public:
 
     void setBlockSize(int size)
     {
-        TracePrintln(TAG, "");
+        TracePrintln("ringbuffer", "");
 
         if (block_size != size)
         {
@@ -179,7 +177,7 @@ public:
 
             int aligned_block_size = (block_size + ALIGN - 1) & (~(ALIGN - 1));
 
-            DebugPrintln(TAG, "New raw buffer size : %d", max_count * aligned_block_size);
+            DebugPrintln("ringbuffer", "New raw buffer size : %d", max_count * aligned_block_size);
             raw_buffer = new T[max_count * aligned_block_size];
 
             for (int i = 0; i < max_count; ++i)
