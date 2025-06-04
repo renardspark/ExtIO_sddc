@@ -13,8 +13,12 @@
 
 #include <stdint.h>
 #include <functional>
+
+#include "config.h"
 #include "../Interface.h"
 #include "dsp/ringbuffer.h"
+
+using namespace std;
 
 class fx3class
 {
@@ -32,6 +36,7 @@ public:
 	virtual bool Enumerate(unsigned char& idx, char* lbuf) = 0;
 	virtual size_t GetDeviceListLength() = 0;
 	virtual bool GetDevice(unsigned char &idx, char *name, size_t name_len, char *serial, size_t serial_len) = 0;
+	virtual vector<SDDC::DeviceItem> GetDeviceList() = 0;
 };
 
 extern "C" fx3class* CreateUsbHandler();

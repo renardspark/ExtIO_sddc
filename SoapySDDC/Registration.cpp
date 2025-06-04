@@ -3,25 +3,24 @@
 #include <cstdint>
 #include <string>
 
+using namespace std;
+
+#define TAG "SoapySDDC_Registration"
+
 SoapySDR::KwargsList findSDDC(const SoapySDR::Kwargs &args)
 {
-    DbgPrintf("soapySDDC::findSDDC\n");
+    TracePrintln(TAG, "");
 
-    std::vector<SoapySDR::Kwargs> results;
+    vector<SoapySDR::Kwargs> results;
 
-    uint8_t count = RadioHandler::GetDeviceListLength();
-
-    /* get device info */
-    struct sddc_device_t sddc_device_infos;
-    for(int i = 0; i < count; ++i)
+    vector<SDDC::DeviceItem> device_list = RadioHandler::GetDeviceList();
+    for(auto sddc_device: device_list)
     {
-        RadioHandler::GetDevice(i, &sddc_device_infos);
-
-        SoapySDR::Kwargs devInfo;
-        devInfo["index"] = std::to_string(i);
-        devInfo["label"] = std::string(sddc_device_infos.product);
-        devInfo["serial"] = std::string(sddc_device_infos.serial_number);
-        results.push_back(devInfo);
+        SoapySDR::Kwargs soapy_device;
+        soapy_device["index"] = to_string(sddc_device.index);
+        soapy_device["label"] = string(sddc_device.product);
+        soapy_device["serial"] = string(sddc_device.serial_number);
+        results.push_back(soapy_device);
     }
 
     return results;
@@ -30,8 +29,12 @@ SoapySDR::KwargsList findSDDC(const SoapySDR::Kwargs &args)
 SoapySDR::Device *makeSDDC(const SoapySDR::Kwargs &args)
 {
     // I don't know how it works, but here I need to choose the right device
-    DbgPrintf("soapySDDC::makeSDDC\n");
-    return new SoapySDDC(0);
+    TracePrintln(TAG, "");
+
+    if(args.find("index") == args.end())
+        return nullptr;
+
+    return new SoapySDDC(stoul(args.at("index")));
 }
 
 static SoapySDR::Registry registerSDDC("SDDC", &findSDDC, &makeSDDC, SOAPY_SDR_ABI_VERSION);

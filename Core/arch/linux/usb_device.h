@@ -32,9 +32,9 @@ extern "C" {
 typedef struct usb_device usb_device_t;
 
 struct usb_device_info {
-  unsigned char *manufacturer;
-  unsigned char *product;
-  unsigned char *serial_number;
+  char *manufacturer;
+  char *product;
+  char *serial_number;
 };
 
 int usb_device_count_devices();

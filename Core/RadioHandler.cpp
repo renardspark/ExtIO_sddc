@@ -233,7 +233,6 @@ sddc_err_t RadioHandler::SetDecimation(uint8_t decimate)
  */
 sddc_err_t RadioHandler::Start(bool convert_r2iq)
 {
-
 	TracePrintln(TAG, "%s", convert_r2iq ? "true" : "false");
 
 	// Stop the stream  if it was already running
@@ -687,4 +686,15 @@ sddc_err_t RadioHandler::GetDevice(uint8_t dev_index, sddc_device_t *dev_pointer
 	delete fx3_handler;
 
 	return ERR_SUCCESS;
+}
+
+vector<SDDC::DeviceItem> RadioHandler::GetDeviceList()
+{
+	TracePrintln(TAG, "");
+
+	auto fx3_handler = CreateUsbHandler();
+	vector<SDDC::DeviceItem> dev_list = fx3_handler->GetDeviceList();
+	delete fx3_handler;
+
+	return dev_list;
 }

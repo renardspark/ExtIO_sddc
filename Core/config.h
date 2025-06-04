@@ -24,12 +24,13 @@
 #define _CONFIG_H_
 
 #include "types.h"
+#include "types_cpp.h"
 #include "../Interface.h"
 #include <math.h>      // atan => PI
 #include <stdbool.h>
 
 #define _DEBUG  // defined in VS configuration
-#define VERBOSE_TRACE
+//#define VERBOSE_TRACE
 //#define VERBOSE_TRACEEXTREME
 
 // macro to call callback function with just status extHWstatusT

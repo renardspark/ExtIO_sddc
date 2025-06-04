@@ -37,7 +37,7 @@ void SoapySDDC::Callback(const sddc_complex_t *data, uint32_t len)
     return;
 }
 
-SoapySDDC::SoapySDDC(uint8_t dev_index): deviceId(-1),
+SoapySDDC::SoapySDDC(uint8_t dev_index): deviceId(dev_index),
                                         numBuffers(16)
 {
     TracePrintln(TAG, "%d", dev_index);

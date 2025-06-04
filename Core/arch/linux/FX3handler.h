@@ -12,6 +12,8 @@
 #include "streaming.h"
 #include "../../dsp/ringbuffer.h"
 
+using namespace std;
+
 class fx3handler : public fx3class
 {
 public:
@@ -29,6 +31,7 @@ public:
 	bool Enumerate(unsigned char &idx, char *lbuf) override;
 	size_t GetDeviceListLength() override;
 	bool GetDevice(unsigned char &idx, char *name, size_t name_len, char *serial, size_t serial_len) override;
+	vector<SDDC::DeviceItem> GetDeviceList() override;
 
 private:
 	bool ReadUsb(uint8_t command, uint16_t value, uint16_t index, uint8_t *data, size_t size);

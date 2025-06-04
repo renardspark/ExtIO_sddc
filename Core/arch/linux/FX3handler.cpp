@@ -7,6 +7,8 @@
 #include "ezusb.h"
 #include "firmware.h"
 
+using namespace std;
+
 #define firmware_data ((const char *)FIRMWARE)
 #define firmware_size sizeof(FIRMWARE)
 
@@ -221,4 +223,27 @@ bool fx3handler::GetDevice(
     strncpy(serial, (const char*)dev->serial_number, serial_len);
 
     return true;
+}
+
+vector<SDDC::DeviceItem> fx3handler::GetDeviceList()
+{
+    TracePrintln(TAG, "");
+
+    if (usb_device_infos == nullptr) {
+        SearchDevices();
+    }
+
+    vector<SDDC::DeviceItem> dev_list;
+
+    for(uint8_t i = 0; i < usb_device_count_devices(); i++)
+    {
+        SDDC::DeviceItem dev = {
+            .index = i,
+            .product = string(usb_device_infos[i].product),
+            .serial_number = string(usb_device_infos[i].serial_number)
+        };
+        dev_list.push_back(dev);
+    }
+
+    return dev_list;
 }
