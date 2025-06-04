@@ -293,18 +293,21 @@ sddc_err_t RadioHandler::Stop()
 sddc_err_t RadioHandler::SetRFMode(sddc_rf_mode_t mode)
 {
 	TracePrintln(TAG, "%d", mode);
-	if(hardware->GetRFMode() != mode)
+	if(hardware->GetRFMode() == mode)
 	{
-		DebugPrintln(TAG, "Switching to RF mode %d", mode);
-
-		sddc_err_t ret = hardware->SetRFMode(mode);
-		if(ret != ERR_SUCCESS) return ret;
-
-		if(mode == VHFMODE)
-			r2iqCntrl->setSideband(true);
-		else
-			r2iqCntrl->setSideband(false);
+		DebugPrintln(TAG, "No mode change required");
+		return ERR_SUCCESS;
 	}
+
+	DebugPrintln(TAG, "Switching to RF mode %d", mode);
+	sddc_err_t ret = hardware->SetRFMode(mode);
+	if(ret != ERR_SUCCESS) return ret;
+
+	if(mode == VHFMODE)
+		r2iqCntrl->setSideband(true);
+	else
+		r2iqCntrl->setSideband(false);
+
 	return ERR_SUCCESS;
 }
 

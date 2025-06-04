@@ -11,33 +11,33 @@
 
 #define TAG "SoapySDDC_Streaming"
 
-std::vector<std::string> SoapySDDC::getStreamFormats(const int direction, const size_t channel) const
+std::vector<std::string> SoapySDDC::getStreamFormats(const int, const size_t) const
 {
-    TracePrintln(TAG, "%i, %ld", direction, channel);
+    TracePrintln(TAG, "*, *");
     std::vector<std::string> formats;
     formats.push_back(SOAPY_SDR_CF32);
     return formats;
 }
 
-std::string SoapySDDC::getNativeStreamFormat(const int direction, const size_t channel, double &fullScale) const
+std::string SoapySDDC::getNativeStreamFormat(const int, const size_t, double &fullScale) const
 {
-    TracePrintln(TAG, "%i, %ld, %f", direction, channel, fullScale);
+    TracePrintln(TAG, "*, *, %f", fullScale);
     fullScale = 1.0;
     return SOAPY_SDR_CF32;
 }
 
-SoapySDR::ArgInfoList SoapySDDC::getStreamArgsInfo(const int direction, const size_t channel) const
+SoapySDR::ArgInfoList SoapySDDC::getStreamArgsInfo(const int, const size_t) const
 {
-    TracePrintln(TAG, "%i, %ld", direction, channel);
-    SoapySDR::ArgInfoList streamArgs;
+    TracePrintln(TAG, "*, *");
 
+    SoapySDR::ArgInfoList streamArgs;
     return streamArgs;
 }
 
 SoapySDR::Stream *SoapySDDC::setupStream(const int direction,
                                          const std::string &format,
                                          const std::vector<size_t> &channels,
-                                         const SoapySDR::Kwargs &args)
+                                         const SoapySDR::Kwargs&)
 {
     TracePrintln(TAG, "%d, %s, *, *", direction, format.c_str());
 
@@ -79,24 +79,24 @@ SoapySDR::Stream *SoapySDDC::setupStream(const int direction,
     return (SoapySDR::Stream *)this;
 }
 
-void SoapySDDC::closeStream(SoapySDR::Stream *stream)
+void SoapySDDC::closeStream(SoapySDR::Stream*)
 {
-    TracePrintln(TAG, "%p", stream);
+    TracePrintln(TAG, "*");
     radio_handler->Stop();
 }
 
-size_t SoapySDDC::getStreamMTU(SoapySDR::Stream *stream) const
+size_t SoapySDDC::getStreamMTU(SoapySDR::Stream*) const
 {
-    TracePrintln(TAG, "%p", stream);
+    TracePrintln(TAG, "*");
     return bufferLength;
 }
 
-int SoapySDDC::activateStream(SoapySDR::Stream *stream,
-                              const int flags,
-                              const long long timeNs,
-                              const size_t numElems)
+int SoapySDDC::activateStream(SoapySDR::Stream*,
+                              const int,
+                              const long long,
+                              const size_t)
 {
-    TracePrintln(TAG, "%p, %i, %lld, %ld", stream, flags, timeNs, numElems);
+    TracePrintln(TAG, "*, *, *, *");
     resetBuffer = true;
     bufferedElems = 0;
     radio_handler->Start(true);
@@ -104,11 +104,11 @@ int SoapySDDC::activateStream(SoapySDR::Stream *stream,
     return 0;
 }
 
-int SoapySDDC::deactivateStream(SoapySDR::Stream *stream,
-                                const int flags,
-                                const long long timeNs)
+int SoapySDDC::deactivateStream(SoapySDR::Stream*,
+                                const int,
+                                const long long)
 {
-    TracePrintln(TAG, "%p, %i, %lld", stream, flags, timeNs);
+    TracePrintln(TAG, "*, *, *");
     radio_handler->Stop();
     return 0;
 }
@@ -148,14 +148,14 @@ int SoapySDDC::readStream(SoapySDR::Stream *stream,
     return returnedElems;
 }
 
-int SoapySDDC::acquireReadBuffer(SoapySDR::Stream *stream,
+int SoapySDDC::acquireReadBuffer(SoapySDR::Stream*,
                                  size_t &handle,
                                  const void **buffs,
                                  int &flags,
-                                 long long &timeNs,
+                                 long long&,
                                  const long timeoutUs)
 {
-    TraceExtremePrintln(TAG, "%p, %ld, *, %i, %lld, %ld", stream, handle, flags, timeNs, timeoutUs);
+    TraceExtremePrintln(TAG, "*, %ld, %p, *, *, %ld", handle, buffs, timeoutUs);
 
     if (resetBuffer)
     {
@@ -191,10 +191,10 @@ int SoapySDDC::acquireReadBuffer(SoapySDR::Stream *stream,
     return samples_buffer[handle].size() / bytesPerSample;
 }
 
-void SoapySDDC::releaseReadBuffer(SoapySDR::Stream *stream,
-                                  const size_t handle)
+void SoapySDDC::releaseReadBuffer(SoapySDR::Stream*,
+                                  const size_t)
 {
-    TraceExtremePrintln(TAG, "%p, %ld", stream, handle);
+    TraceExtremePrintln(TAG, "*, *");
     std::lock_guard<std::mutex> lock(_buf_mutex);
     _buf_count--;
 }

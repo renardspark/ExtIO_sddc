@@ -165,7 +165,7 @@ void fft_mt_r2iq::Init(float gain, ringbuffer<int16_t> *input, ringbuffer<sddc_c
 	// Historically there was a "+ 1" here, but it triggers a rather catastrophic memory leak
 	ffts_per_blocks = inputbuffer_block_size / (BASE_FFT_SIZE - BASE_FFT_SCRAP_SIZE);
 	DebugPrintln(TAG, "Number of FFTs per blocks : %d", ffts_per_blocks);
-	DebugPrintln(TAG, "Effective FFT conversion : %ld", ffts_per_blocks * (BASE_FFT_SIZE - BASE_FFT_SCRAP_SIZE));
+	DebugPrintln(TAG, "Effective FFT conversion : %d", ffts_per_blocks * (BASE_FFT_SIZE - BASE_FFT_SCRAP_SIZE));
 
 
 
