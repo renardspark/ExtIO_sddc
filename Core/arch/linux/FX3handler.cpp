@@ -229,21 +229,22 @@ vector<SDDC::DeviceItem> fx3handler::GetDeviceList()
 {
     TracePrintln(TAG, "");
 
-    if (usb_device_infos == nullptr) {
-        SearchDevices();
-    }
-
     vector<SDDC::DeviceItem> dev_list;
+
+    struct usb_device_info *usb_device_list;
+    usb_device_get_device_list(&usb_device_list);
 
     for(uint8_t i = 0; i < usb_device_count_devices(); i++)
     {
         SDDC::DeviceItem dev = {
             .index = i,
-            .product = string(usb_device_infos[i].product),
-            .serial_number = string(usb_device_infos[i].serial_number)
+            .product = string(usb_device_list[i].product),
+            .serial_number = string(usb_device_list[i].serial_number)
         };
         dev_list.push_back(dev);
     }
+
+    usb_device_free_device_list(usb_device_list);
 
     return dev_list;
 }
