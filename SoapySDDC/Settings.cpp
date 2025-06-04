@@ -75,6 +75,7 @@ SoapySDR::Kwargs SoapySDDC::getHardwareInfo(void) const
     // this also gets printed in --probe
     SoapySDR::Kwargs args;
 
+    args["name"] = string(radio_handler->getHardwareName());
     args["author"] = "RenardSpark";
     args["origin"] = "https://github.com/renardspark/SDDC_Driver";
     args["index"] = std::to_string(deviceId);
